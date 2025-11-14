@@ -22,6 +22,24 @@
   /* Spacing */
   --spacing-section-y: 2.5rem; /* py-10 */
   --spacing-section-x: 5rem;   /* px-20 */
+
+  /* Admin Dashboard Theme Colors */
+  --color-admin-primary: #4F46E5;
+  --color-admin-bg-light: #f6f7f8;
+  --color-admin-bg-dark: #101922;
+  --color-admin-foreground-light: #ffffff;
+  --color-admin-foreground-dark: #182431;
+  --color-admin-card-light: #ffffff;
+  --color-admin-card-dark: #182431;
+  --color-admin-text-light-primary: #1E293B;
+  --color-admin-text-dark-primary: #F8FAFC;
+  --color-admin-text-light-secondary: #64748B;
+  --color-admin-text-dark-secondary: #94A3B8;
+  --color-admin-border-light: #E2E8F0;
+  --color-admin-border-dark: #334155;
+  --color-admin-success: #22C55E;
+  --color-admin-warning: #F59E0B;
+  --color-admin-danger: #EF4444;
 }
 
 /* ===== GLOBAL COMPONENTS ===== */
