@@ -1,51 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import AccountService from '../../../services/AccountService';
 
 const Login_E = () => {
     const [employeeId, setEmployeeId] = useState("");
     const [password, setPassword] = useState("");
     const [message, setMessage] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+    const [demoAccounts, setDemoAccounts] = useState([]);
     const navigate = useNavigate();
 
-    // STATIC LOGIN - Hardcoded credentials
-    const staticAccounts = [
-        {
-            employeeId: "admin",
-            password: "admin123",
-            name: "Admin",
-            department: "Quản trị",
-            role: "administrator"
-        },
-        {
-            employeeId: "doctor01",
-            password: "doctor123",
-            name: "Bác sĩ Nguyễn Văn A",
-            department: "Bác sĩ chuyên khoa",
-            role: "doctor"
-        },
-        {
-            employeeId: "nurse01",
-            password: "nurse123",
-            name: "Y tá Trần Thị B",
-            department: "Điều dưỡng",
-            role: "nurse"
-        },
-        {
-            employeeId: "reception01",
-            password: "reception123",
-            name: "Lễ tân Lê Văn C",
-            department: "Tiếp tân",
-            role: "receptionist"
-        },
-        {
-            employeeId: "accountant01",
-            password: "accountant123",
-            name: "Kế toán Phạm Thị D",
-            department: "Kế toán",
-            role: "accountant"
-        }
-    ];
+    // Initialize accounts and load demo list
+    useEffect(() => {
+        AccountService.initializeAccounts();
+        const accounts = AccountService.getAllAccounts();
+        // Show only first 3 accounts for demo
+        setDemoAccounts(accounts.slice(0, 3));
+    }, []);
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -54,12 +25,12 @@ const Login_E = () => {
 
         // Simulate API delay
         setTimeout(() => {
-            // Find matching account
-            const account = staticAccounts.find(
-                acc => acc.employeeId === employeeId && acc.password === password
-            );
+            // Authenticate using AccountService
+            const result = AccountService.authenticate(employeeId, password);
 
-            if (account) {
+            if (result.success) {
+                const account = result.account;
+
                 // Store auth data in localStorage
                 localStorage.setItem('token', 'static-token-' + Date.now());
                 localStorage.setItem('employeeId', account.employeeId);
@@ -74,7 +45,7 @@ const Login_E = () => {
                     navigate('/Admin/Dashboard');
                 }, 500);
             } else {
-                setMessage('Mã nhân viên hoặc mật khẩu không đúng!');
+                setMessage(result.message);
                 setIsLoading(false);
             }
         }, 800);
@@ -179,10 +150,15 @@ const Login_E = () => {
                             Tài khoản demo:
                         </p>
                         <div className="space-y-1 text-xs text-[var(--color-admin-text-light-secondary)]">
-                            <p>• Admin: <code className="bg-white px-2 py-0.5 rounded">admin</code> / <code className="bg-white px-2 py-0.5 rounded">admin123</code></p>
-                            <p>• Bác sĩ: <code className="bg-white px-2 py-0.5 rounded">doctor01</code> / <code className="bg-white px-2 py-0.5 rounded">doctor123</code></p>
-                            <p>• Lễ tân: <code className="bg-white px-2 py-0.5 rounded">reception01</code> / <code className="bg-white px-2 py-0.5 rounded">reception123</code></p>
+                            {demoAccounts.map((acc, idx) => (
+                                <p key={idx}>
+                                    • {acc.name}: <code className="bg-white px-2 py-0.5 rounded">{acc.employeeId}</code> / <code className="bg-white px-2 py-0.5 rounded">{acc.password}</code>
+                                </p>
+                            ))}
                         </div>
+                        <p className="text-xs text-[var(--color-admin-text-light-secondary)] mt-2 italic">
+                            💡 Admin có thể thêm/sửa/xóa tài khoản tại "Quản lý tài khoản"
+                        </p>
                     </div>
                 </div>
 
