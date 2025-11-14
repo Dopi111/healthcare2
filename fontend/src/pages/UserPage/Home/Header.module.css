@@ -1,0 +1,30 @@
+@reference "tailwindcss";
+
+.header {
+  @apply p-4 h-[100px] bg-[#EDFFFA] flex items-center justify-between;
+}
+
+.leftSection {
+  @apply flex items-center space-x-4;
+}
+
+.logo {
+  @apply text-[20px] uppercase font-bold text-[#FFC419] pr-[25px] pl-[100px] hover:opacity-80 cursor-pointer;
+}
+
+.nav {
+  @apply flex items-center space-x-4;
+}
+
+.navLink {
+  @apply text-[18px] font-medium text-black hover:text-[#FFF3D1] hover:bg-[#FFC419] rounded-2xl pt-[5px] pb-[5px] px-[12px];
+}
+
+.rightSection {
+  @apply pr-[100px];
+}
+
+.loginButton {
+  @apply bg-[#FFC419] hover:bg-[#e6ae14] text-white font-semibold px-4 py-2 rounded-xl shadow-md;
+}
+

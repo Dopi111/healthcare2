@@ -1,0 +1,248 @@
+@reference "tailwindcss";
+
+/* Container */
+.wrapper {
+  @apply w-full;
+}
+
+/* Banner section */
+.bannerSection {
+  @apply relative h-[500px] overflow-hidden;
+}
+
+/* Carousel Container */
+.carouselContainer {
+  @apply relative w-full h-full;
+}
+
+/* Carousel Slide */
+.carouselSlide {
+  @apply absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center text-center;
+  @apply opacity-0 transition-opacity duration-1000 ease-in-out;
+  pointer-events: none;
+}
+
+.activeSlide {
+  @apply opacity-100;
+  pointer-events: auto;
+}
+
+/* Banner Content */
+.bannerContent {
+  @apply z-10 px-4;
+}
+
+.bannerTitle {
+  @apply text-[38px] font-bold text-[#2c3e50] mb-3;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.bannerSubtitle {
+  @apply text-[20px] mt-2 text-[#2c3e50] mb-6;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.bannerButtons {
+  @apply mt-6 flex gap-4 justify-center;
+}
+
+.bannerButton {
+  @apply bg-[#FFC419] hover:bg-[#e6ae14] text-white font-semibold px-8 py-3 rounded-xl shadow-lg cursor-pointer transition-all text-[16px];
+}
+
+.bannerButtonSecondary {
+  @apply bg-white hover:bg-gray-50 text-[#2c3e50] font-semibold px-8 py-3 rounded-xl shadow-lg border-2 border-[#FFC419] cursor-pointer transition-all text-[16px];
+}
+
+/* Carousel Navigation Arrows */
+.carouselPrev,
+.carouselNext {
+  @apply absolute top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-[#2c3e50] font-bold text-[28px] w-12 h-12 rounded-full cursor-pointer transition-all shadow-md z-20;
+  @apply flex items-center justify-center;
+}
+
+.carouselPrev {
+  @apply left-6;
+}
+
+.carouselNext {
+  @apply right-6;
+}
+
+.carouselPrev:hover,
+.carouselNext:hover {
+  @apply shadow-lg scale-110;
+}
+
+/* Carousel Dots */
+.carouselDots {
+  @apply absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-3 z-20;
+}
+
+.dot {
+  @apply w-3 h-3 rounded-full bg-white/50 cursor-pointer transition-all;
+  @apply hover:bg-white/80;
+}
+
+.activeDot {
+  @apply bg-white w-8;
+}
+
+/* Intro section */
+.introSection {
+  @apply py-10 px-20 text-center;
+}
+
+.introTitle {
+  @apply text-[26px] font-semibold text-[#2c3e50];
+}
+
+.introText {
+  @apply mt-3 text-[16px] text-gray-600 leading-relaxed;
+}
+
+/* Services section */
+.servicesSection {
+  @apply py-10 px-20;
+}
+
+.sectionTitle {
+  @apply text-[24px] font-semibold mb-5;
+}
+
+.sectionTitleWithColor {
+  @apply text-[24px] font-semibold mb-5 text-[#2c3e50];
+}
+
+.servicesGrid {
+  @apply grid grid-cols-4 gap-6;
+}
+
+.serviceCard {
+  @apply bg-white shadow-md p-6 rounded-xl hover:shadow-lg transition-all cursor-pointer;
+}
+
+.serviceTitle {
+  @apply text-[18px] font-medium text-[#2c3e50];
+}
+
+.serviceLink {
+  @apply text-gray-500 mt-2 text-[14px];
+}
+
+/* Branches section */
+.branchesSection {
+  @apply py-10 px-20 bg-[#F8F9FA];
+}
+
+.branchesGrid {
+  @apply grid grid-cols-3 gap-6;
+}
+
+.branchCard {
+  @apply bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all;
+}
+
+.branchName {
+  @apply text-[18px] font-medium text-[#2c3e50];
+}
+
+.branchAddress {
+  @apply text-gray-600 text-[14px] mt-2;
+}
+
+.branchHotline {
+  @apply text-[14px] mt-1 font-semibold text-[#2c3e50];
+}
+
+/* Doctors section */
+.doctorsSection {
+  @apply py-10 px-20;
+}
+
+.doctorsGrid {
+  @apply grid grid-cols-4 gap-6;
+}
+
+.doctorCard {
+  @apply bg-white shadow-md p-6 rounded-xl hover:shadow-lg transition-all;
+}
+
+.doctorName {
+  @apply text-[18px] font-medium text-[#2c3e50];
+}
+
+.doctorSpecialty {
+  @apply text-gray-600 text-[14px] mt-1;
+}
+
+.doctorExp {
+  @apply text-gray-500 text-[13px] mt-1;
+}
+
+.doctorButton {
+  @apply mt-3 text-[#1e90ff] text-[14px] hover:underline;
+}
+
+/* Equipment section */
+.equipmentSection {
+  @apply py-10 px-20 bg-[#F8F9FA];
+}
+
+.equipmentGrid {
+  @apply grid grid-cols-4 gap-6;
+}
+
+.equipmentCard {
+  @apply bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all;
+}
+
+.equipmentName {
+  @apply text-[18px] font-medium text-[#2c3e50];
+}
+
+.equipmentDesc {
+  @apply text-gray-600 text-[14px] mt-2;
+}
+
+.equipmentLink {
+  @apply text-[13px] text-[#1e90ff] mt-2 cursor-pointer hover:underline;
+}
+
+/* Discover services section */
+.discoverSection {
+  @apply py-12 px-20 text-center;
+}
+
+.discoverSubtitle {
+  @apply text-gray-600 text-[16px] mt-2 mb-8 max-w-3xl mx-auto;
+}
+
+.discoverGrid {
+  @apply grid grid-cols-4 gap-6 mb-8;
+}
+
+.discoverCard {
+  @apply bg-white shadow-lg p-8 rounded-2xl hover:shadow-xl transition-all border border-gray-100;
+}
+
+.discoverIcon {
+  @apply text-[56px] mb-4;
+}
+
+.discoverTitle {
+  @apply text-[20px] font-semibold text-[#2c3e50] mb-2;
+}
+
+.discoverDesc {
+  @apply text-gray-600 text-[15px] leading-relaxed;
+}
+
+.discoverButtonContainer {
+  @apply flex justify-center mt-6;
+}
+
+.discoverButton {
+  @apply bg-[#FFC419] hover:bg-[#e6ae14] text-white font-semibold px-8 py-3 rounded-xl shadow-md text-[16px] transition-all hover:shadow-lg;
+}
+

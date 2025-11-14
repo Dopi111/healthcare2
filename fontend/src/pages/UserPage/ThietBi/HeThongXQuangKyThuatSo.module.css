@@ -1,0 +1,87 @@
+@reference "tailwindcss";
+
+/* Tổng thể */
+.wrapper {
+  @apply w-full;
+}
+
+.mainContent {
+  @apply min-h-screen;
+}
+
+/* Banner */
+.bannerSection {
+  @apply h-[300px] bg-[#E6F3FF] flex flex-col justify-center items-center text-center;
+}
+
+.bannerTitle {
+  @apply text-[36px] font-bold text-[#1B3A57];
+}
+
+.bannerSubtitle {
+  @apply text-[18px] mt-2 text-gray-600 max-w-2xl;
+}
+
+/* Giới thiệu */
+.introSection {
+  @apply py-12 px-20 bg-white;
+}
+
+.sectionTitle {
+  @apply text-[26px] font-semibold mb-4 text-[#1B3A57];
+}
+
+.introText {
+  @apply text-gray-700 text-[16px] leading-relaxed max-w-4xl;
+}
+
+/* Tính năng nổi bật */
+.featureSection {
+  @apply py-12 px-20 bg-[#F8F9FA];
+}
+
+.featureList {
+  @apply list-disc list-inside text-gray-700 text-[16px] leading-relaxed space-y-2;
+}
+
+/* Lợi ích */
+.benefitSection {
+  @apply py-12 px-20 bg-white;
+}
+
+.benefitGrid {
+  @apply grid grid-cols-3 gap-8 mt-8;
+}
+
+.benefitCard {
+  @apply bg-[#E6F3FF] p-6 rounded-2xl shadow-md hover:shadow-lg transition-all text-center;
+}
+
+.benefitTitle {
+  @apply text-[20px] font-semibold text-[#1B3A57] mb-2;
+}
+
+.benefitText {
+  @apply text-gray-700 text-[15px] leading-relaxed;
+}
+
+/* Liên hệ */
+.contactSection {
+  @apply py-12 px-20 bg-[#0077CC] text-center text-white;
+}
+
+.contactContainer {
+  @apply max-w-3xl mx-auto;
+}
+
+.contactTitle {
+  @apply text-[26px] font-semibold mb-4;
+}
+
+.contactText {
+  @apply text-[16px] mb-6;
+}
+
+.contactButton {
+  @apply bg-[#FFC419] hover:bg-[#e6ae14] text-white font-semibold px-8 py-3 rounded-xl shadow-md transition;
+}

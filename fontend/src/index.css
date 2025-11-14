@@ -1,0 +1,109 @@
+@import "tailwindcss";
+
+/* ===== THEME VARIABLES ===== */
+@theme {
+  /* Colors - Brand */
+  --color-primary: #FFC419;
+  --color-primary-hover: #E6AE14;
+  --color-primary-light: #FFF3D1;
+
+  /* Colors - Background */
+  --color-bg-light: #E3FFF8;
+  --color-bg-lighter: #EDFFFA;
+  --color-bg-gray: #F8F9FA;
+  --color-bg-footer: #EEEEEE;
+
+  /* Colors - Text */
+  --color-text-dark: #2C3E50;
+  --color-text-gray: #6B7280;
+  --color-text-light: #9CA3AF;
+  --color-text-link: #1E90FF;
+
+  /* Spacing */
+  --spacing-section-y: 2.5rem; /* py-10 */
+  --spacing-section-x: 5rem;   /* px-20 */
+}
+
+/* ===== GLOBAL COMPONENTS ===== */
+@layer components {
+  /* Primary Button */
+  .btn-primary {
+    @apply bg-[var(--color-primary)] text-white font-semibold px-6 py-2 rounded-xl shadow-md transition-colors cursor-pointer;
+  }
+  .btn-primary:hover {
+    @apply bg-[var(--color-primary-hover)];
+  }
+
+  /* Secondary Button */
+  .btn-secondary {
+    @apply bg-gray-100 hover:bg-gray-200 text-[var(--color-text-dark)] font-semibold px-6 py-3 rounded-lg transition-colors cursor-pointer;
+  }
+
+  /* Card */
+  .card {
+    @apply bg-white shadow-md rounded-xl hover:shadow-lg transition-all;
+  }
+  .card-lg {
+    @apply bg-white shadow-lg rounded-2xl hover:shadow-xl transition-all;
+  }
+
+  /* Section */
+  .section {
+    @apply py-[var(--spacing-section-y)] px-[var(--spacing-section-x)];
+  }
+  .section-gray {
+    @apply py-[var(--spacing-section-y)] px-[var(--spacing-section-x)] bg-[var(--color-bg-gray)];
+  }
+  .section-light {
+    @apply py-[var(--spacing-section-y)] px-[var(--spacing-section-x)] bg-[var(--color-bg-light)];
+  }
+
+  /* Headings */
+  .heading-1 { @apply text-[32px] font-bold text-[var(--color-text-dark)]; }
+  .heading-2 { @apply text-[28px] font-semibold text-[var(--color-text-dark)]; }
+  .heading-3 { @apply text-[24px] font-semibold text-[var(--color-text-dark)]; }
+  .heading-4 { @apply text-[20px] font-semibold text-[var(--color-text-dark)]; }
+
+  /* Text Utilities */
+  .text-body { @apply text-[16px] text-gray-600 leading-relaxed; }
+  .text-small { @apply text-[14px] text-gray-600; }
+  .text-link { @apply text-[var(--color-text-link)] hover:underline cursor-pointer; }
+
+  /* Grid Layouts */
+  .grid-2 { @apply grid grid-cols-2 gap-6; }
+  .grid-3 { @apply grid grid-cols-3 gap-6; }
+  .grid-4 { @apply grid grid-cols-4 gap-6; }
+
+  /* Banner */
+  .banner {
+    @apply h-[300px] bg-[var(--color-bg-light)] flex flex-col justify-center items-center text-center;
+  }
+  .banner-lg {
+    @apply h-[400px] bg-[var(--color-bg-light)] flex flex-col justify-center items-center text-center;
+  }
+
+  /* Icon Sizes */
+  .icon-sm { @apply text-[48px]; }
+  .icon-md { @apply text-[56px]; }
+  .icon-lg { @apply text-[72px]; }
+}
+
+/* ===== RESPONSIVE DESIGN ===== */
+@layer utilities {
+  @media (max-width: 768px) {
+    .section,
+    .section-gray,
+    .section-light {
+      @apply px-4 py-6;
+    }
+
+    .grid-2,
+    .grid-3,
+    .grid-4 {
+      @apply grid-cols-1;
+    }
+
+    .heading-lg { @apply text-[24px]; }
+    .heading-md { @apply text-[20px]; }
+  }
+}

@@ -1,0 +1,165 @@
+@reference "tailwindcss";
+
+/* Container chính */
+.wrapper {
+  @apply w-full;
+}
+
+.mainContent {
+  @apply min-h-screen;
+}
+
+/* Banner section */
+.bannerSection {
+  @apply h-[300px] bg-[#E3FFF8] flex flex-col justify-center items-center text-center;
+}
+
+.bannerTitle {
+  @apply text-[36px] font-bold text-[#2c3e50];
+}
+
+.bannerSubtitle {
+  @apply text-[18px] mt-2 text-gray-600;
+}
+
+/* Form section */
+.formSection {
+  @apply py-12 px-20 grid grid-cols-[2fr_1fr] gap-8;
+}
+
+.formContainer {
+  @apply bg-white shadow-xl p-8 rounded-2xl border border-gray-100;
+}
+
+.formTitle {
+  @apply text-[26px] font-semibold mb-6 text-[#2c3e50];
+}
+
+.form {
+  @apply space-y-5;
+}
+
+.formGroup {
+  @apply flex flex-col;
+}
+
+.formRow {
+  @apply grid grid-cols-2 gap-5;
+}
+
+.label {
+  @apply text-[15px] font-medium text-gray-700 mb-2;
+}
+
+.required {
+  @apply text-red-500;
+}
+
+.input,
+.select {
+  @apply w-full px-4 py-3 border border-gray-300 rounded-lg text-[15px] 
+         focus:outline-none focus:ring-2 focus:ring-[#1e90ff] focus:border-transparent
+         transition-all;
+}
+
+.textarea {
+  @apply w-full px-4 py-3 border border-gray-300 rounded-lg text-[15px] 
+         focus:outline-none focus:ring-2 focus:ring-[#1e90ff] focus:border-transparent
+         transition-all resize-none;
+}
+
+.submitButton {
+  @apply w-full mt-6 bg-[#FFC419] hover:bg-[#e6ae14] text-white font-semibold 
+         px-8 py-4 rounded-xl shadow-md text-[16px] transition-all
+         hover:shadow-lg;
+}
+
+/* Info box */
+.infoBox {
+  @apply space-y-6;
+}
+
+.infoTitle {
+  @apply text-[20px] font-semibold text-[#2c3e50] mb-4;
+}
+
+.infoList {
+  @apply bg-white shadow-lg p-6 rounded-2xl border border-gray-100 space-y-3;
+}
+
+.infoList li {
+  @apply text-[15px] text-gray-700 leading-relaxed pl-2;
+}
+
+.infoList li::before {
+  content: "✓ ";
+  @apply text-green-500 font-bold mr-2;
+}
+
+.contactInfo {
+  @apply bg-white shadow-lg p-6 rounded-2xl border border-gray-100;
+}
+
+.contactText {
+  @apply text-[15px] text-gray-700 mb-2;
+}
+
+/* Benefits section */
+.benefitsSection {
+  @apply py-12 px-20 bg-[#F8F9FA];
+}
+
+.sectionTitle {
+  @apply text-[28px] font-semibold mb-8 text-[#2c3e50] text-center;
+}
+
+.benefitsGrid {
+  @apply grid grid-cols-4 gap-6;
+}
+
+.benefitCard {
+  @apply bg-white shadow-lg p-6 rounded-2xl text-center hover:shadow-xl 
+         transition-all border border-gray-100;
+}
+
+.benefitIcon {
+  @apply text-[48px] mb-4;
+}
+
+.benefitTitle {
+  @apply text-[18px] font-semibold text-[#2c3e50] mb-2;
+}
+
+.benefitDesc {
+  @apply text-gray-600 text-[14px] leading-relaxed;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .formSection {
+    @apply grid-cols-1;
+  }
+  
+  .benefitsGrid {
+    @apply grid-cols-2;
+  }
+}
+
+@media (max-width: 768px) {
+  .formRow {
+    @apply grid-cols-1;
+  }
+  
+  .benefitsGrid {
+    @apply grid-cols-1;
+  }
+  
+  .formSection {
+    @apply px-6;
+  }
+  
+  .benefitsSection {
+    @apply px-6;
+  }
+}
+

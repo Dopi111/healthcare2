@@ -1,0 +1,91 @@
+@reference "tailwindcss";
+
+/* Container chính */
+.wrapper {
+  @apply w-full;
+}
+
+.mainContent {
+  @apply min-h-screen;
+}
+
+/* Banner */
+.bannerSection {
+  @apply h-[300px] bg-[#E6F4FF] flex flex-col justify-center items-center text-center;
+}
+
+.bannerTitle {
+  @apply text-[36px] font-bold text-[#2c3e50];
+}
+
+.bannerSubtitle {
+  @apply text-[18px] mt-2 text-gray-600;
+}
+
+/* Giới thiệu */
+.introSection {
+  @apply py-12 px-20 bg-white;
+}
+
+.sectionTitle {
+  @apply text-[26px] font-semibold mb-4 text-[#2c3e50];
+}
+
+.introText {
+  @apply text-gray-700 text-[16px] leading-relaxed max-w-4xl;
+}
+
+/* Dịch vụ nổi bật */
+.serviceSection {
+  @apply py-12 px-20 bg-[#F8F9FA];
+}
+
+.serviceGrid {
+  @apply grid grid-cols-3 gap-8 mt-8;
+}
+
+.serviceCard {
+  @apply bg-white rounded-2xl p-8 shadow-md text-center border border-gray-100 hover:shadow-xl transition-all;
+}
+
+.serviceIcon {
+  @apply text-[40px] mb-3;
+}
+
+.serviceName {
+  @apply text-[18px] font-semibold text-[#2c3e50] mb-2;
+}
+
+.serviceDesc {
+  @apply text-gray-600 text-[15px] leading-relaxed;
+}
+
+/* Lợi ích */
+.benefitSection {
+  @apply py-12 px-20 bg-white;
+}
+
+.benefitList {
+  @apply list-disc list-inside text-gray-700 text-[16px] leading-relaxed space-y-2;
+}
+
+/* Cam kết */
+.commitSection {
+  @apply py-12 px-20 bg-[#E6F4FF];
+}
+
+.commitContainer {
+  @apply max-w-3xl mx-auto text-center;
+}
+
+.commitTitle {
+  @apply text-[26px] font-semibold mb-4 text-[#2c3e50];
+}
+
+.commitText {
+  @apply text-gray-700 text-[16px] leading-relaxed;
+}
+
+.commitButton {
+  @apply mt-6 bg-[#FFC419] hover:bg-[#e6ae14] text-white font-semibold px-8 py-3 rounded-xl shadow-md;
+}
