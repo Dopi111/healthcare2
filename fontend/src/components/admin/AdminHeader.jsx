@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
 
-const AdminHeader = ({ context }) => {
+const AdminHeader = ({ context, onMenuClick }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center justify-between whitespace-nowrap border-b border-[var(--color-admin-border-light)] bg-[var(--color-admin-foreground-light)] px-4 sm:px-6 lg:px-8">
       <div className="flex items-center gap-4">
-        <button className="lg:hidden">
+        <button
+          className="lg:hidden hover:bg-gray-100 p-2 rounded-lg"
+          onClick={onMenuClick}
+        >
           <span className="material-symbols-outlined text-2xl">menu</span>
         </button>
-        <h2 className="text-lg font-bold tracking-[-0.015em] text-[var(--color-admin-text-light-primary)]">
+        <h2 className="text-base sm:text-lg font-bold tracking-[-0.015em] text-[var(--color-admin-text-light-primary)] truncate max-w-[150px] sm:max-w-none">
           {context || 'Dashboard'}
         </h2>
       </div>

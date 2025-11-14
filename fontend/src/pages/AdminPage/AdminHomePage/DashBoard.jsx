@@ -16,11 +16,11 @@ import Patient_List_Details from "../System/Patient_List_Details"; //Danh sách 
 import Found_Management from "../Accounting/Fund_Management";
 import SalaryManagement from "../Accounting/SalaryManagement";
 //ĐĂNG NHẬP/ĐĂNG KÝ
-import Login_E from "../Auth/Login_E";
-import Register_E from "../Auth/Register_E";
-import Profile_E from "../Auth/Profile_E";
-import Add_Infor_E from "../Auth/Add_Infor_E";
-import UpdateProfile_E from "../Auth/UpdateProfile_E";
+import Login_E from "../auth/Login_E";
+import Register_E from "../auth/Register_E";
+import Profile_E from "../auth/Profile_E";
+import Add_Infor_E from "../auth/Add_Infor_E";
+import UpdateProfile_E from "../auth/UpdateProfile_E";
 //ADMINSTATOR
 import Accounts_Management from "../Adminstator/Accounts_Management";
 import Employees_Management from "../Adminstator/Employees_Management";
@@ -43,7 +43,7 @@ const DashBoard = () => {
     const getNavClasses = (navItem) => {
         // Classes mặc định
         const defaultClasses = "flex items-center text-[13px] text-black my-0.5 cursor-pointer px-3 py-2 rounded transition w-full truncate";
-        const activeClasses = "bg-[#FFC419] font-semibold text-black"; 
+        const activeClasses = "bg-[#FFC419] font-semibold text-black";
 
         if (context === navItem) {
             return `${defaultClasses} ${activeClasses}`;
@@ -66,7 +66,7 @@ const DashBoard = () => {
 
 //             if (!res.data?.ok) return;
 //             const dept = (res.data.data.department || '').trim();
-            
+
 //             //department trống hoặc null
 //             if (!dept) {
 //                 localStorage.setItem('department', '');
@@ -83,7 +83,7 @@ const DashBoard = () => {
 //                 (dep.includes('bác sĩ chuyên') || dep.includes('bác sĩ chuyên khoa') || dep.includes('bác sĩ')) &&
 //                 !dep.includes('kỹ thuật')
 //             ) {
-//                 setContext('Quản lý BN cá nhân'); 
+//                 setContext('Quản lý BN cá nhân');
 //                 return;
 //             }
 
@@ -93,7 +93,7 @@ const DashBoard = () => {
 //             }
 
 //             if (dep.includes('kế toán')) {
-//                 setContext('Quản lý Quỹ'); 
+//                 setContext('Quản lý Quỹ');
 //                 return;
 //             }
 
