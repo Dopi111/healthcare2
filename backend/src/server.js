@@ -5,6 +5,19 @@ import dotenv from 'dotenv';
 import pool from './config/db.js';
 import bcrypt from 'bcryptjs';
 
+// Import Swagger
+import { swaggerUi, swaggerSpec } from './swagger.js';
+
+// Import new API routes
+import laboratoryRoutes from './routes/laboratoryRoutes.js';
+import fundRoutes from './routes/fundRoutes.js';
+import revenueRoutes from './routes/revenueRoutes.js';
+import insuranceRoutes from './routes/insuranceRoutes.js';
+import expenseRoutes from './routes/expenseRoutes.js';
+import patientRoutes from './routes/patientRoutes.js';
+import scheduleRoutes from './routes/scheduleRoutes.js';
+import accountRoutes from './routes/accountRoutes.js';
+
 dotenv.config();
 
 const PORT = process.env.PORT || 5001;
@@ -15,7 +28,21 @@ const app = express();
 app.use(cors({ origin: 'http://localhost:5173' })); // Cho phép từ frontend
 app.use(express.json())
 
+// Swagger UI Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// Existing routes
 app.use(("/api/employee"), employeesRouters);
+
+// New REST API routes
+app.use('/api/laboratory', laboratoryRoutes);
+app.use('/api/fund', fundRoutes);
+app.use('/api/revenue', revenueRoutes);
+app.use('/api/insurance', insuranceRoutes);
+app.use('/api/expense', expenseRoutes);
+app.use('/api/patient', patientRoutes);
+app.use('/api/schedule', scheduleRoutes);
+app.use('/api/account', accountRoutes);
 
 const ensureDefaultAdmin = async () => {
   const adminPassword = process.env.ADMIN_PASSWORD || 'Admin@123';
@@ -75,7 +102,8 @@ const start = async () => {
         await ensureDefaultAdmin();
 
         app.listen(PORT, () => {
-                console.log(`Start Server on Port: ${PORT}`);
+                console.log(`🚀 Server running on http://localhost:${PORT}`);
+                console.log(`📚 API Documentation available at http://localhost:${PORT}/api-docs`);
         });
 };
 
