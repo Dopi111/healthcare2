@@ -1,38 +1,7 @@
 import express from 'express';
+import pool from '../config/db.js';
 
 const router = express.Router();
-
-// In-memory data
-let schedules = [
-  {
-    id: '1',
-    scheduleId: 'LLV001',
-    employeeId: 'NV001',
-    employeeName: 'Bác sĩ Nguyễn Văn A',
-    department: 'Khoa Nội',
-    date: '2024-11-15',
-    shift: 'Ca sáng',
-    startTime: '07:00',
-    endTime: '12:00',
-    status: 'Đã xác nhận',
-    notes: 'Trực phòng khám tổng quát',
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: '2',
-    scheduleId: 'LLV002',
-    employeeId: 'NV001',
-    employeeName: 'Bác sĩ Nguyễn Văn A',
-    department: 'Khoa Nội',
-    date: '2024-11-16',
-    shift: 'Ca chiều',
-    startTime: '13:00',
-    endTime: '18:00',
-    status: 'Đã xác nhận',
-    notes: 'Khám bệnh theo lịch hẹn',
-    createdAt: new Date().toISOString()
-  }
-];
 
 /**
  * @swagger
@@ -44,12 +13,17 @@ let schedules = [
  *       200:
  *         description: Danh sách lịch làm việc
  */
-router.get('/', (req, res) => {
-  res.json({
-    success: true,
-    count: schedules.length,
-    data: schedules
-  });
+router.get('/', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM work_schedules ORDER BY date DESC');
+    res.json({
+      success: true,
+      count: result.rows.length,
+      data: result.rows
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 });
 
 /**
@@ -70,12 +44,16 @@ router.get('/', (req, res) => {
  *       404:
  *         description: Không tìm thấy
  */
-router.get('/:id', (req, res) => {
-  const schedule = schedules.find(s => s.id === req.params.id);
-  if (!schedule) {
-    return res.status(404).json({ success: false, message: 'Không tìm thấy lịch làm việc' });
+router.get('/:id', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM work_schedules WHERE id = $1', [req.params.id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy lịch làm việc' });
+    }
+    res.json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
-  res.json({ success: true, data: schedule });
 });
 
 /**
@@ -101,14 +79,26 @@ router.get('/:id', (req, res) => {
  *       201:
  *         description: Tạo thành công
  */
-router.post('/', (req, res) => {
-  const newSchedule = {
-    id: (schedules.length + 1).toString(),
-    ...req.body,
-    createdAt: new Date().toISOString()
-  };
-  schedules.push(newSchedule);
-  res.status(201).json({ success: true, data: newSchedule });
+router.post('/', async (req, res) => {
+  try {
+    const {
+      scheduleId, employeeId, employeeName, department, date, shift,
+      startTime, endTime, status, notes
+    } = req.body;
+    const result = await pool.query(
+      `INSERT INTO work_schedules
+       (scheduleId, employeeId, employeeName, department, date, shift, startTime, endTime, status, notes)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+      [scheduleId, employeeId, employeeName, department, date, shift, startTime, endTime, status, notes]
+    );
+    res.status(201).json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    if (error.code === '23505') {
+      res.status(400).json({ success: false, message: 'Mã lịch làm việc đã tồn tại' });
+    } else {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
 });
 
 /**
@@ -133,13 +123,35 @@ router.post('/', (req, res) => {
  *       200:
  *         description: Cập nhật thành công
  */
-router.put('/:id', (req, res) => {
-  const index = schedules.findIndex(s => s.id === req.params.id);
-  if (index === -1) {
-    return res.status(404).json({ success: false, message: 'Không tìm thấy' });
+router.put('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const fields = req.body;
+    const updates = [];
+    const values = [];
+    let paramCount = 1;
+
+    Object.keys(fields).forEach(key => {
+      if (key !== 'id') {
+        updates.push(`${key} = $${paramCount}`);
+        values.push(fields[key]);
+        paramCount++;
+      }
+    });
+
+    values.push(id);
+    const result = await pool.query(
+      `UPDATE work_schedules SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING *`,
+      values
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy' });
+    }
+    res.json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
-  schedules[index] = { ...schedules[index], ...req.body, updatedAt: new Date().toISOString() };
-  res.json({ success: true, data: schedules[index] });
 });
 
 /**
@@ -158,9 +170,16 @@ router.put('/:id', (req, res) => {
  *       200:
  *         description: Xóa thành công
  */
-router.delete('/:id', (req, res) => {
-  schedules = schedules.filter(s => s.id !== req.params.id);
-  res.json({ success: true, message: 'Xóa thành công' });
+router.delete('/:id', async (req, res) => {
+  try {
+    const result = await pool.query('DELETE FROM work_schedules WHERE id = $1 RETURNING *', [req.params.id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy' });
+    }
+    res.json({ success: true, message: 'Xóa thành công' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 });
 
 /**
@@ -179,9 +198,16 @@ router.delete('/:id', (req, res) => {
  *       200:
  *         description: Lịch làm việc của nhân viên
  */
-router.get('/employee/:employeeId', (req, res) => {
-  const results = schedules.filter(s => s.employeeId === req.params.employeeId);
-  res.json({ success: true, count: results.length, data: results });
+router.get('/employee/:employeeId', async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT * FROM work_schedules WHERE employeeId = $1 ORDER BY date DESC',
+      [req.params.employeeId]
+    );
+    res.json({ success: true, count: result.rows.length, data: result.rows });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 });
 
 export default router;

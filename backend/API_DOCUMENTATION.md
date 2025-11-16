@@ -6,14 +6,26 @@ Backend API cho Hệ thống Quản lý Bệnh viện với Swagger UI documenta
 
 ## Cách sử dụng
 
-### 1. Cài đặt dependencies
+### 1. Setup Database
+
+**QUAN TRỌNG:** Trước khi chạy server, bạn cần setup PostgreSQL database.
+
+Xem hướng dẫn chi tiết tại: [DATABASE_SETUP.md](./DATABASE_SETUP.md)
+
+Tóm tắt các bước:
+1. Cài đặt PostgreSQL
+2. Tạo database `healthcare_db`
+3. Cấu hình file `.env` với thông tin database
+4. Chạy migration file để tạo tables và insert dữ liệu mẫu
+
+### 2. Cài đặt dependencies
 
 ```bash
 cd backend
 npm install
 ```
 
-### 2. Chạy server
+### 3. Chạy server
 
 ```bash
 npm start
@@ -161,25 +173,36 @@ curl -X POST http://localhost:5001/api/account/login \
 
 ## Lưu ý
 
-1. **In-memory Storage**: Tất cả data được lưu trong bộ nhớ (in-memory), khi restart server data sẽ reset về mặc định.
+1. **PostgreSQL Database**: Tất cả data được lưu trong PostgreSQL database. Cần setup database trước khi chạy server (xem [DATABASE_SETUP.md](./DATABASE_SETUP.md)).
 2. **CORS**: API chấp nhận request từ `http://localhost:5173` (frontend).
-3. **No Authentication**: API hiện tại không có authentication middleware (chỉ demo).
+3. **No Authentication Middleware**: API hiện tại không có authentication middleware (chỉ demo). Có endpoint `/api/account/login` để xác thực user.
 4. **Swagger UI**: Sử dụng Swagger UI để test API dễ dàng hơn.
+5. **Sample Data**: Migration file đã tự động tạo dữ liệu mẫu cho tất cả các bảng.
 
 ## Demo cho Giáo viên
 
+### Chuẩn bị:
+1. Setup PostgreSQL database (xem [DATABASE_SETUP.md](./DATABASE_SETUP.md))
+2. Chạy migration để tạo tables và dữ liệu mẫu
+3. Cấu hình file `.env`
+
+### Demo:
 1. Start server: `npm start`
 2. Mở trình duyệt: `http://localhost:5001/api-docs`
 3. Thử các API endpoints trực tiếp trong Swagger UI
 4. Xem response data và schema
+5. Data được lưu persistent trong PostgreSQL, không mất khi restart server
 
 ## Technology Stack
 
 - **Express.js 5.1.0** - Web framework
+- **PostgreSQL** - Relational database
+- **node-postgres (pg)** - PostgreSQL client for Node.js
 - **Swagger UI Express** - API documentation UI
 - **Swagger JSDoc** - Generate OpenAPI spec from JSDoc comments
 - **CORS** - Cross-Origin Resource Sharing
 - **ES6 Modules** - Modern JavaScript
+- **Async/Await** - Asynchronous database operations
 
 ## API Tags
 

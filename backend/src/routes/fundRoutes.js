@@ -1,32 +1,7 @@
 import express from 'express';
+import pool from '../config/db.js';
 
 const router = express.Router();
-
-// In-memory data
-let funds = [
-  {
-    id: '1',
-    transactionId: 'TXN001',
-    date: '2024-11-01',
-    type: 'Thu',
-    category: 'Khám bệnh',
-    amount: 15000000,
-    description: 'Thu phí khám bệnh tháng 11',
-    createdBy: 'Kế toán Nguyễn Văn A',
-    createdAt: new Date('2024-11-01').toISOString()
-  },
-  {
-    id: '2',
-    transactionId: 'TXN002',
-    date: '2024-11-03',
-    type: 'Chi',
-    category: 'Thuốc men',
-    amount: 12000000,
-    description: 'Mua thuốc và vật tư y tế',
-    createdBy: 'Kế toán Trần Thị B',
-    createdAt: new Date('2024-11-03').toISOString()
-  }
-];
 
 /**
  * @swagger
@@ -38,12 +13,17 @@ let funds = [
  *       200:
  *         description: Danh sách giao dịch
  */
-router.get('/', (req, res) => {
-  res.json({
-    success: true,
-    count: funds.length,
-    data: funds
-  });
+router.get('/', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM fund_transactions ORDER BY date DESC');
+    res.json({
+      success: true,
+      count: result.rows.length,
+      data: result.rows
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 });
 
 /**
@@ -64,12 +44,16 @@ router.get('/', (req, res) => {
  *       404:
  *         description: Không tìm thấy
  */
-router.get('/:id', (req, res) => {
-  const fund = funds.find(f => f.id === req.params.id);
-  if (!fund) {
-    return res.status(404).json({ success: false, message: 'Không tìm thấy giao dịch' });
+router.get('/:id', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM fund_transactions WHERE id = $1', [req.params.id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy giao dịch' });
+    }
+    res.json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
-  res.json({ success: true, data: fund });
 });
 
 /**
@@ -84,9 +68,9 @@ router.get('/:id', (req, res) => {
  *         application/json:
  *           schema:
  *             type: object
- *             required: [transactionId, date, type, category, amount]
+ *             required: [transaction_id, date, type, category, amount]
  *             properties:
- *               transactionId: { type: string }
+ *               transaction_id: { type: string }
  *               date: { type: string }
  *               type: { type: string }
  *               category: { type: string }
@@ -95,14 +79,22 @@ router.get('/:id', (req, res) => {
  *       201:
  *         description: Tạo thành công
  */
-router.post('/', (req, res) => {
-  const newFund = {
-    id: (funds.length + 1).toString(),
-    ...req.body,
-    createdAt: new Date().toISOString()
-  };
-  funds.push(newFund);
-  res.status(201).json({ success: true, data: newFund });
+router.post('/', async (req, res) => {
+  try {
+    const { transaction_id, date, type, category, amount, description, created_by } = req.body;
+    const result = await pool.query(
+      `INSERT INTO fund_transactions (transaction_id, date, type, category, amount, description, created_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+      [transaction_id, date, type, category, amount, description, created_by]
+    );
+    res.status(201).json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    if (error.code === '23505') {
+      res.status(400).json({ success: false, message: 'Mã giao dịch đã tồn tại' });
+    } else {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
 });
 
 /**
@@ -127,13 +119,35 @@ router.post('/', (req, res) => {
  *       200:
  *         description: Cập nhật thành công
  */
-router.put('/:id', (req, res) => {
-  const index = funds.findIndex(f => f.id === req.params.id);
-  if (index === -1) {
-    return res.status(404).json({ success: false, message: 'Không tìm thấy' });
+router.put('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const fields = req.body;
+    const updates = [];
+    const values = [];
+    let paramCount = 1;
+
+    Object.keys(fields).forEach(key => {
+      if (key !== 'id') {
+        updates.push(`${key} = $${paramCount}`);
+        values.push(fields[key]);
+        paramCount++;
+      }
+    });
+
+    values.push(id);
+    const result = await pool.query(
+      `UPDATE fund_transactions SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING *`,
+      values
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy' });
+    }
+    res.json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
-  funds[index] = { ...funds[index], ...req.body, updatedAt: new Date().toISOString() };
-  res.json({ success: true, data: funds[index] });
 });
 
 /**
@@ -152,9 +166,16 @@ router.put('/:id', (req, res) => {
  *       200:
  *         description: Xóa thành công
  */
-router.delete('/:id', (req, res) => {
-  funds = funds.filter(f => f.id !== req.params.id);
-  res.json({ success: true, message: 'Xóa thành công' });
+router.delete('/:id', async (req, res) => {
+  try {
+    const result = await pool.query('DELETE FROM fund_transactions WHERE id = $1 RETURNING *', [req.params.id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy' });
+    }
+    res.json({ success: true, message: 'Xóa thành công' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 });
 
 /**
@@ -167,17 +188,25 @@ router.delete('/:id', (req, res) => {
  *       200:
  *         description: Thống kê
  */
-router.get('/statistics/summary', (req, res) => {
-  const income = funds.filter(f => f.type === 'Thu').reduce((sum, f) => sum + f.amount, 0);
-  const expense = funds.filter(f => f.type === 'Chi').reduce((sum, f) => sum + f.amount, 0);
+router.get('/statistics/summary', async (req, res) => {
+  try {
+    const incomeResult = await pool.query("SELECT COALESCE(SUM(amount), 0) as total FROM fund_transactions WHERE type = 'Thu'");
+    const expenseResult = await pool.query("SELECT COALESCE(SUM(amount), 0) as total FROM fund_transactions WHERE type = 'Chi'");
+    const countResult = await pool.query('SELECT COUNT(*) FROM fund_transactions');
 
-  const stats = {
-    totalIncome: income,
-    totalExpense: expense,
-    balance: income - expense,
-    transactionCount: funds.length
-  };
-  res.json({ success: true, data: stats });
+    const income = parseFloat(incomeResult.rows[0].total);
+    const expense = parseFloat(expenseResult.rows[0].total);
+
+    const stats = {
+      totalIncome: income,
+      totalExpense: expense,
+      balance: income - expense,
+      transactionCount: parseInt(countResult.rows[0].count)
+    };
+    res.json({ success: true, data: stats });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 });
 
 export default router;
