@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 // TIẾP TÂN
 import DS_BN from "../Receptionist/DS_BN";
 import Them_BN from "../Receptionist/Them_BN";
+import DS_BN_v2 from "../Receptionist/DS_BN_v2";
+import Them_BN_v2 from "../Receptionist/Them_BN_v2";
 // BÁC SĨ
 import Individual_Patient_Management from "../Doctor/Individual_Patient_Management"; //Quản lý bệnh nhân của bác sĩ
 import Test_Result from "../Doctor/Test_Result"; //Phiếu xét nghiệm
@@ -121,8 +123,8 @@ const DashBoard = () => {
             {context === "Quản lý nhân viên" && <Employees_Management setContext={setContext} />}
 
             {/* TIẾP TÂN */}
-            {context === "Thêm BN mới" && <Them_BN setContext={setContext} />}
-            {context === "Danh sách BN" && <DS_BN setContext={setContext} />}
+            {context === "Thêm BN mới" && <Them_BN_v2 setContext={setContext} />}
+            {context === "Danh sách BN" && <DS_BN_v2 setContext={setContext} />}
 
             {/* BÁC SĨ */}
             {context === "Quản lý BN cá nhân" && <Individual_Patient_Management setContext={setContext} />}
