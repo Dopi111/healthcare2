@@ -1,34 +1,7 @@
 import express from 'express';
+import pool from '../config/db.js';
 
 const router = express.Router();
-
-// In-memory data
-let expenses = [
-  {
-    id: '1',
-    expenseId: 'CP001',
-    date: '2024-11-01',
-    category: 'Lương',
-    department: 'Toàn bộ',
-    amount: 50000000,
-    description: 'Lương tháng 11',
-    approvedBy: 'Giám đốc Nguyễn Văn A',
-    status: 'Đã chi',
-    createdAt: new Date('2024-11-01').toISOString()
-  },
-  {
-    id: '2',
-    expenseId: 'CP002',
-    date: '2024-11-03',
-    category: 'Thuốc men',
-    department: 'Dược',
-    amount: 12000000,
-    description: 'Mua thuốc và vật tư y tế',
-    approvedBy: 'Trưởng khoa Dược',
-    status: 'Đã chi',
-    createdAt: new Date('2024-11-03').toISOString()
-  }
-];
 
 /**
  * @swagger
@@ -40,12 +13,17 @@ let expenses = [
  *       200:
  *         description: Danh sách chi phí
  */
-router.get('/', (req, res) => {
-  res.json({
-    success: true,
-    count: expenses.length,
-    data: expenses
-  });
+router.get('/', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM operating_expenses ORDER BY date DESC');
+    res.json({
+      success: true,
+      count: result.rows.length,
+      data: result.rows
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 });
 
 /**
@@ -66,12 +44,16 @@ router.get('/', (req, res) => {
  *       404:
  *         description: Không tìm thấy
  */
-router.get('/:id', (req, res) => {
-  const expense = expenses.find(e => e.id === req.params.id);
-  if (!expense) {
-    return res.status(404).json({ success: false, message: 'Không tìm thấy chi phí' });
+router.get('/:id', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM operating_expenses WHERE id = $1', [req.params.id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy chi phí' });
+    }
+    res.json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
-  res.json({ success: true, data: expense });
 });
 
 /**
@@ -97,14 +79,23 @@ router.get('/:id', (req, res) => {
  *       201:
  *         description: Tạo thành công
  */
-router.post('/', (req, res) => {
-  const newExpense = {
-    id: (expenses.length + 1).toString(),
-    ...req.body,
-    createdAt: new Date().toISOString()
-  };
-  expenses.push(newExpense);
-  res.status(201).json({ success: true, data: newExpense });
+router.post('/', async (req, res) => {
+  try {
+    const { expenseId, date, category, department, amount, description, approvedBy, status } = req.body;
+    const result = await pool.query(
+      `INSERT INTO operating_expenses
+       (expenseId, date, category, department, amount, description, approvedBy, status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+      [expenseId, date, category, department, amount, description, approvedBy, status]
+    );
+    res.status(201).json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    if (error.code === '23505') {
+      res.status(400).json({ success: false, message: 'Mã chi phí đã tồn tại' });
+    } else {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
 });
 
 /**
@@ -129,13 +120,35 @@ router.post('/', (req, res) => {
  *       200:
  *         description: Cập nhật thành công
  */
-router.put('/:id', (req, res) => {
-  const index = expenses.findIndex(e => e.id === req.params.id);
-  if (index === -1) {
-    return res.status(404).json({ success: false, message: 'Không tìm thấy' });
+router.put('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const fields = req.body;
+    const updates = [];
+    const values = [];
+    let paramCount = 1;
+
+    Object.keys(fields).forEach(key => {
+      if (key !== 'id') {
+        updates.push(`${key} = $${paramCount}`);
+        values.push(fields[key]);
+        paramCount++;
+      }
+    });
+
+    values.push(id);
+    const result = await pool.query(
+      `UPDATE operating_expenses SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING *`,
+      values
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy' });
+    }
+    res.json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
-  expenses[index] = { ...expenses[index], ...req.body, updatedAt: new Date().toISOString() };
-  res.json({ success: true, data: expenses[index] });
 });
 
 /**
@@ -154,9 +167,16 @@ router.put('/:id', (req, res) => {
  *       200:
  *         description: Xóa thành công
  */
-router.delete('/:id', (req, res) => {
-  expenses = expenses.filter(e => e.id !== req.params.id);
-  res.json({ success: true, message: 'Xóa thành công' });
+router.delete('/:id', async (req, res) => {
+  try {
+    const result = await pool.query('DELETE FROM operating_expenses WHERE id = $1 RETURNING *', [req.params.id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy' });
+    }
+    res.json({ success: true, message: 'Xóa thành công' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 });
 
 /**
@@ -169,19 +189,27 @@ router.delete('/:id', (req, res) => {
  *       200:
  *         description: Thống kê
  */
-router.get('/statistics/summary', (req, res) => {
-  const paid = expenses.filter(e => e.status === 'Đã chi');
-  const pending = expenses.filter(e => e.status === 'Chờ duyệt');
+router.get('/statistics/summary', async (req, res) => {
+  try {
+    const totalExpenseResult = await pool.query('SELECT COALESCE(SUM(amount), 0) as total FROM operating_expenses');
+    const paidResult = await pool.query("SELECT COALESCE(SUM(amount), 0) as total FROM operating_expenses WHERE status = 'Đã chi'");
+    const pendingResult = await pool.query("SELECT COALESCE(SUM(amount), 0) as total FROM operating_expenses WHERE status = 'Chờ duyệt'");
+    const totalCountResult = await pool.query('SELECT COUNT(*) FROM operating_expenses');
+    const paidCountResult = await pool.query("SELECT COUNT(*) FROM operating_expenses WHERE status = 'Đã chi'");
+    const pendingCountResult = await pool.query("SELECT COUNT(*) FROM operating_expenses WHERE status = 'Chờ duyệt'");
 
-  const stats = {
-    totalExpense: expenses.reduce((sum, e) => sum + e.amount, 0),
-    paidAmount: paid.reduce((sum, e) => sum + e.amount, 0),
-    pendingAmount: pending.reduce((sum, e) => sum + e.amount, 0),
-    totalCount: expenses.length,
-    paidCount: paid.length,
-    pendingCount: pending.length
-  };
-  res.json({ success: true, data: stats });
+    const stats = {
+      totalExpense: parseFloat(totalExpenseResult.rows[0].total),
+      paidAmount: parseFloat(paidResult.rows[0].total),
+      pendingAmount: parseFloat(pendingResult.rows[0].total),
+      totalCount: parseInt(totalCountResult.rows[0].count),
+      paidCount: parseInt(paidCountResult.rows[0].count),
+      pendingCount: parseInt(pendingCountResult.rows[0].count)
+    };
+    res.json({ success: true, data: stats });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 });
 
 export default router;

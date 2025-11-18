@@ -1,44 +1,7 @@
 import express from 'express';
+import pool from '../config/db.js';
 
 const router = express.Router();
-
-// In-memory data
-let insurance = [
-  {
-    id: '1',
-    claimId: 'BH001',
-    patientId: 'BN001',
-    patientName: 'Nguyễn Văn A',
-    insuranceCard: 'DN1234567890',
-    insuranceType: 'BHYT',
-    visitDate: '2024-11-10',
-    totalAmount: 5000000,
-    insuranceCovered: 4000000,
-    patientPay: 1000000,
-    status: 'Đã duyệt',
-    approvedBy: 'Kế toán Trần Thị B',
-    approvedDate: '2024-11-11',
-    notes: '',
-    createdAt: new Date('2024-11-10').toISOString()
-  },
-  {
-    id: '2',
-    claimId: 'BH002',
-    patientId: 'BN002',
-    patientName: 'Trần Thị B',
-    insuranceCard: 'DN9876543210',
-    insuranceType: 'BHYT',
-    visitDate: '2024-11-12',
-    totalAmount: 3500000,
-    insuranceCovered: 2800000,
-    patientPay: 700000,
-    status: 'Chờ duyệt',
-    approvedBy: '',
-    approvedDate: '',
-    notes: '',
-    createdAt: new Date('2024-11-12').toISOString()
-  }
-];
 
 /**
  * @swagger
@@ -50,12 +13,17 @@ let insurance = [
  *       200:
  *         description: Danh sách hồ sơ
  */
-router.get('/', (req, res) => {
-  res.json({
-    success: true,
-    count: insurance.length,
-    data: insurance
-  });
+router.get('/', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM insurance_claims ORDER BY visitDate DESC');
+    res.json({
+      success: true,
+      count: result.rows.length,
+      data: result.rows
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 });
 
 /**
@@ -76,12 +44,16 @@ router.get('/', (req, res) => {
  *       404:
  *         description: Không tìm thấy
  */
-router.get('/:id', (req, res) => {
-  const item = insurance.find(i => i.id === req.params.id);
-  if (!item) {
-    return res.status(404).json({ success: false, message: 'Không tìm thấy hồ sơ' });
+router.get('/:id', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM insurance_claims WHERE id = $1', [req.params.id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy hồ sơ' });
+    }
+    res.json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
-  res.json({ success: true, data: item });
 });
 
 /**
@@ -106,14 +78,29 @@ router.get('/:id', (req, res) => {
  *       201:
  *         description: Tạo thành công
  */
-router.post('/', (req, res) => {
-  const newInsurance = {
-    id: (insurance.length + 1).toString(),
-    ...req.body,
-    createdAt: new Date().toISOString()
-  };
-  insurance.push(newInsurance);
-  res.status(201).json({ success: true, data: newInsurance });
+router.post('/', async (req, res) => {
+  try {
+    const {
+      claimId, patientId, patientName, insuranceCard, insuranceType,
+      visitDate, totalAmount, insuranceCovered, patientPay, status,
+      approvedBy, approvedDate, notes
+    } = req.body;
+    const result = await pool.query(
+      `INSERT INTO insurance_claims
+       (claimId, patientId, patientName, insuranceCard, insuranceType, visitDate,
+        totalAmount, insuranceCovered, patientPay, status, approvedBy, approvedDate, notes)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *`,
+      [claimId, patientId, patientName, insuranceCard, insuranceType, visitDate,
+       totalAmount, insuranceCovered, patientPay, status, approvedBy, approvedDate, notes]
+    );
+    res.status(201).json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    if (error.code === '23505') {
+      res.status(400).json({ success: false, message: 'Mã hồ sơ đã tồn tại' });
+    } else {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
 });
 
 /**
@@ -138,13 +125,35 @@ router.post('/', (req, res) => {
  *       200:
  *         description: Cập nhật thành công
  */
-router.put('/:id', (req, res) => {
-  const index = insurance.findIndex(i => i.id === req.params.id);
-  if (index === -1) {
-    return res.status(404).json({ success: false, message: 'Không tìm thấy' });
+router.put('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const fields = req.body;
+    const updates = [];
+    const values = [];
+    let paramCount = 1;
+
+    Object.keys(fields).forEach(key => {
+      if (key !== 'id') {
+        updates.push(`${key} = $${paramCount}`);
+        values.push(fields[key]);
+        paramCount++;
+      }
+    });
+
+    values.push(id);
+    const result = await pool.query(
+      `UPDATE insurance_claims SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING *`,
+      values
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy' });
+    }
+    res.json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
-  insurance[index] = { ...insurance[index], ...req.body, updatedAt: new Date().toISOString() };
-  res.json({ success: true, data: insurance[index] });
 });
 
 /**
@@ -163,9 +172,16 @@ router.put('/:id', (req, res) => {
  *       200:
  *         description: Xóa thành công
  */
-router.delete('/:id', (req, res) => {
-  insurance = insurance.filter(i => i.id !== req.params.id);
-  res.json({ success: true, message: 'Xóa thành công' });
+router.delete('/:id', async (req, res) => {
+  try {
+    const result = await pool.query('DELETE FROM insurance_claims WHERE id = $1 RETURNING *', [req.params.id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy' });
+    }
+    res.json({ success: true, message: 'Xóa thành công' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 });
 
 /**
@@ -178,21 +194,29 @@ router.delete('/:id', (req, res) => {
  *       200:
  *         description: Thống kê
  */
-router.get('/statistics/summary', (req, res) => {
-  const approved = insurance.filter(i => i.status === 'Đã duyệt');
-  const pending = insurance.filter(i => i.status === 'Chờ duyệt');
-  const rejected = insurance.filter(i => i.status === 'Từ chối');
+router.get('/statistics/summary', async (req, res) => {
+  try {
+    const totalResult = await pool.query('SELECT COUNT(*) FROM insurance_claims');
+    const approvedResult = await pool.query("SELECT COUNT(*) FROM insurance_claims WHERE status = 'Đã duyệt'");
+    const pendingResult = await pool.query("SELECT COUNT(*) FROM insurance_claims WHERE status = 'Chờ duyệt'");
+    const rejectedResult = await pool.query("SELECT COUNT(*) FROM insurance_claims WHERE status = 'Từ chối'");
+    const totalAmountResult = await pool.query('SELECT COALESCE(SUM(totalAmount), 0) as total FROM insurance_claims');
+    const insuranceCoveredResult = await pool.query('SELECT COALESCE(SUM(insuranceCovered), 0) as total FROM insurance_claims');
+    const patientPayResult = await pool.query('SELECT COALESCE(SUM(patientPay), 0) as total FROM insurance_claims');
 
-  const stats = {
-    total: insurance.length,
-    approved: approved.length,
-    pending: pending.length,
-    rejected: rejected.length,
-    totalAmount: insurance.reduce((sum, i) => sum + i.totalAmount, 0),
-    insuranceCovered: insurance.reduce((sum, i) => sum + i.insuranceCovered, 0),
-    patientPay: insurance.reduce((sum, i) => sum + i.patientPay, 0)
-  };
-  res.json({ success: true, data: stats });
+    const stats = {
+      total: parseInt(totalResult.rows[0].count),
+      approved: parseInt(approvedResult.rows[0].count),
+      pending: parseInt(pendingResult.rows[0].count),
+      rejected: parseInt(rejectedResult.rows[0].count),
+      totalAmount: parseFloat(totalAmountResult.rows[0].total),
+      insuranceCovered: parseFloat(insuranceCoveredResult.rows[0].total),
+      patientPay: parseFloat(patientPayResult.rows[0].total)
+    };
+    res.json({ success: true, data: stats });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 });
 
 export default router;

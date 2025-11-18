@@ -1,42 +1,7 @@
 import express from 'express';
+import pool from '../config/db.js';
 
 const router = express.Router();
-
-// In-memory data
-let revenue = [
-  {
-    id: '1',
-    date: '2024-11-01',
-    category: 'Khám bệnh',
-    patientCount: 45,
-    revenue: 22500000,
-    month: '2024-11'
-  },
-  {
-    id: '2',
-    date: '2024-11-01',
-    category: 'Xét nghiệm',
-    patientCount: 30,
-    revenue: 15000000,
-    month: '2024-11'
-  },
-  {
-    id: '3',
-    date: '2024-11-01',
-    category: 'Nội trú',
-    patientCount: 10,
-    revenue: 35000000,
-    month: '2024-11'
-  },
-  {
-    id: '4',
-    date: '2024-11-01',
-    category: 'Phẫu thuật',
-    patientCount: 5,
-    revenue: 50000000,
-    month: '2024-11'
-  }
-];
 
 /**
  * @swagger
@@ -48,12 +13,17 @@ let revenue = [
  *       200:
  *         description: Danh sách doanh thu
  */
-router.get('/', (req, res) => {
-  res.json({
-    success: true,
-    count: revenue.length,
-    data: revenue
-  });
+router.get('/', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM medical_revenue ORDER BY date DESC');
+    res.json({
+      success: true,
+      count: result.rows.length,
+      data: result.rows
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 });
 
 /**
@@ -74,12 +44,16 @@ router.get('/', (req, res) => {
  *       404:
  *         description: Không tìm thấy
  */
-router.get('/:id', (req, res) => {
-  const item = revenue.find(r => r.id === req.params.id);
-  if (!item) {
-    return res.status(404).json({ success: false, message: 'Không tìm thấy' });
+router.get('/:id', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM medical_revenue WHERE id = $1', [req.params.id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy' });
+    }
+    res.json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
-  res.json({ success: true, data: item });
 });
 
 /**
@@ -105,14 +79,18 @@ router.get('/:id', (req, res) => {
  *       201:
  *         description: Tạo thành công
  */
-router.post('/', (req, res) => {
-  const newRevenue = {
-    id: (revenue.length + 1).toString(),
-    ...req.body,
-    createdAt: new Date().toISOString()
-  };
-  revenue.push(newRevenue);
-  res.status(201).json({ success: true, data: newRevenue });
+router.post('/', async (req, res) => {
+  try {
+    const { date, category, patientCount, revenue, month } = req.body;
+    const result = await pool.query(
+      `INSERT INTO medical_revenue (date, category, patientCount, revenue, month)
+       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+      [date, category, patientCount, revenue, month]
+    );
+    res.status(201).json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 });
 
 /**
@@ -137,13 +115,35 @@ router.post('/', (req, res) => {
  *       200:
  *         description: Cập nhật thành công
  */
-router.put('/:id', (req, res) => {
-  const index = revenue.findIndex(r => r.id === req.params.id);
-  if (index === -1) {
-    return res.status(404).json({ success: false, message: 'Không tìm thấy' });
+router.put('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const fields = req.body;
+    const updates = [];
+    const values = [];
+    let paramCount = 1;
+
+    Object.keys(fields).forEach(key => {
+      if (key !== 'id') {
+        updates.push(`${key} = $${paramCount}`);
+        values.push(fields[key]);
+        paramCount++;
+      }
+    });
+
+    values.push(id);
+    const result = await pool.query(
+      `UPDATE medical_revenue SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING *`,
+      values
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy' });
+    }
+    res.json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
-  revenue[index] = { ...revenue[index], ...req.body };
-  res.json({ success: true, data: revenue[index] });
 });
 
 /**
@@ -162,9 +162,16 @@ router.put('/:id', (req, res) => {
  *       200:
  *         description: Xóa thành công
  */
-router.delete('/:id', (req, res) => {
-  revenue = revenue.filter(r => r.id !== req.params.id);
-  res.json({ success: true, message: 'Xóa thành công' });
+router.delete('/:id', async (req, res) => {
+  try {
+    const result = await pool.query('DELETE FROM medical_revenue WHERE id = $1 RETURNING *', [req.params.id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy' });
+    }
+    res.json({ success: true, message: 'Xóa thành công' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 });
 
 /**
@@ -177,16 +184,23 @@ router.delete('/:id', (req, res) => {
  *       200:
  *         description: Thống kê
  */
-router.get('/statistics/summary', (req, res) => {
-  const totalRevenue = revenue.reduce((sum, r) => sum + r.revenue, 0);
-  const totalPatients = revenue.reduce((sum, r) => sum + r.patientCount, 0);
+router.get('/statistics/summary', async (req, res) => {
+  try {
+    const revenueResult = await pool.query('SELECT COALESCE(SUM(revenue), 0) as total FROM medical_revenue');
+    const patientsResult = await pool.query('SELECT COALESCE(SUM(patientCount), 0) as total FROM medical_revenue');
 
-  const stats = {
-    totalRevenue,
-    totalPatients,
-    avgRevenuePerPatient: totalPatients > 0 ? totalRevenue / totalPatients : 0
-  };
-  res.json({ success: true, data: stats });
+    const totalRevenue = parseFloat(revenueResult.rows[0].total);
+    const totalPatients = parseInt(patientsResult.rows[0].total);
+
+    const stats = {
+      totalRevenue,
+      totalPatients,
+      avgRevenuePerPatient: totalPatients > 0 ? totalRevenue / totalPatients : 0
+    };
+    res.json({ success: true, data: stats });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 });
 
 export default router;

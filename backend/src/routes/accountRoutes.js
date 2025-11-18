@@ -1,36 +1,7 @@
 import express from 'express';
+import pool from '../config/db.js';
 
 const router = express.Router();
-
-// In-memory data
-let accounts = [
-  {
-    id: '1',
-    employeeId: 'admin',
-    password: 'admin123',
-    name: 'Admin',
-    department: 'Quản trị',
-    position: 'Quản trị viên',
-    role: 'administrator',
-    phone: '0123456789',
-    email: 'admin@healthcare.com',
-    status: 'active',
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: '2',
-    employeeId: 'doctor01',
-    password: 'doctor123',
-    name: 'Bác sĩ Nguyễn Văn A',
-    department: 'Bác sĩ chuyên khoa',
-    position: 'Bác sĩ',
-    role: 'doctor',
-    phone: '0987654321',
-    email: 'doctor01@healthcare.com',
-    status: 'active',
-    createdAt: new Date().toISOString()
-  }
-];
 
 /**
  * @swagger
@@ -42,13 +13,17 @@ let accounts = [
  *       200:
  *         description: Danh sách tài khoản (không bao gồm mật khẩu)
  */
-router.get('/', (req, res) => {
-  const safeAccounts = accounts.map(({ password, ...account }) => account);
-  res.json({
-    success: true,
-    count: safeAccounts.length,
-    data: safeAccounts
-  });
+router.get('/', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT id, employeeId, name, department, position, role, phone, email, status, created_at FROM accounts ORDER BY created_at DESC');
+    res.json({
+      success: true,
+      count: result.rows.length,
+      data: result.rows
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 });
 
 /**
@@ -69,13 +44,19 @@ router.get('/', (req, res) => {
  *       404:
  *         description: Không tìm thấy
  */
-router.get('/:id', (req, res) => {
-  const account = accounts.find(a => a.id === req.params.id);
-  if (!account) {
-    return res.status(404).json({ success: false, message: 'Không tìm thấy tài khoản' });
+router.get('/:id', async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT id, employeeId, name, department, position, role, phone, email, status, created_at FROM accounts WHERE id = $1',
+      [req.params.id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy tài khoản' });
+    }
+    res.json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
-  const { password, ...safeAccount } = account;
-  res.json({ success: true, data: safeAccount });
 });
 
 /**
@@ -100,16 +81,23 @@ router.get('/:id', (req, res) => {
  *       201:
  *         description: Tạo thành công
  */
-router.post('/', (req, res) => {
-  const newAccount = {
-    id: (accounts.length + 1).toString(),
-    ...req.body,
-    status: req.body.status || 'active',
-    createdAt: new Date().toISOString()
-  };
-  accounts.push(newAccount);
-  const { password, ...safeAccount } = newAccount;
-  res.status(201).json({ success: true, data: safeAccount });
+router.post('/', async (req, res) => {
+  try {
+    const { employeeId, password, name, department, position, role, phone, email, status } = req.body;
+    const result = await pool.query(
+      `INSERT INTO accounts
+       (employeeId, password, name, department, position, role, phone, email, status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id, employeeId, name, department, position, role, phone, email, status, created_at`,
+      [employeeId, password, name, department, position, role, phone, email, status || 'active']
+    );
+    res.status(201).json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    if (error.code === '23505') {
+      res.status(400).json({ success: false, message: 'Mã nhân viên đã tồn tại' });
+    } else {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
 });
 
 /**
@@ -134,14 +122,35 @@ router.post('/', (req, res) => {
  *       200:
  *         description: Cập nhật thành công
  */
-router.put('/:id', (req, res) => {
-  const index = accounts.findIndex(a => a.id === req.params.id);
-  if (index === -1) {
-    return res.status(404).json({ success: false, message: 'Không tìm thấy' });
+router.put('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const fields = req.body;
+    const updates = [];
+    const values = [];
+    let paramCount = 1;
+
+    Object.keys(fields).forEach(key => {
+      if (key !== 'id') {
+        updates.push(`${key} = $${paramCount}`);
+        values.push(fields[key]);
+        paramCount++;
+      }
+    });
+
+    values.push(id);
+    const result = await pool.query(
+      `UPDATE accounts SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING id, employeeId, name, department, position, role, phone, email, status, created_at`,
+      values
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy' });
+    }
+    res.json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
-  accounts[index] = { ...accounts[index], ...req.body, updatedAt: new Date().toISOString() };
-  const { password, ...safeAccount } = accounts[index];
-  res.json({ success: true, data: safeAccount });
 });
 
 /**
@@ -160,13 +169,21 @@ router.put('/:id', (req, res) => {
  *       200:
  *         description: Xóa thành công
  */
-router.delete('/:id', (req, res) => {
-  const account = accounts.find(a => a.id === req.params.id);
-  if (account && account.employeeId === 'admin') {
-    return res.status(403).json({ success: false, message: 'Không thể xóa tài khoản admin' });
+router.delete('/:id', async (req, res) => {
+  try {
+    const checkResult = await pool.query('SELECT employeeId FROM accounts WHERE id = $1', [req.params.id]);
+    if (checkResult.rows.length > 0 && checkResult.rows[0].employeeid === 'admin') {
+      return res.status(403).json({ success: false, message: 'Không thể xóa tài khoản admin' });
+    }
+
+    const result = await pool.query('DELETE FROM accounts WHERE id = $1 RETURNING *', [req.params.id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy' });
+    }
+    res.json({ success: true, message: 'Xóa thành công' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
-  accounts = accounts.filter(a => a.id !== req.params.id);
-  res.json({ success: true, message: 'Xóa thành công' });
 });
 
 /**
@@ -191,20 +208,27 @@ router.delete('/:id', (req, res) => {
  *       401:
  *         description: Sai thông tin đăng nhập
  */
-router.post('/login', (req, res) => {
-  const { employeeId, password } = req.body;
-  const account = accounts.find(a => a.employeeId === employeeId && a.password === password);
+router.post('/login', async (req, res) => {
+  try {
+    const { employeeId, password } = req.body;
+    const result = await pool.query(
+      'SELECT id, employeeId, name, department, position, role, phone, email, status, created_at FROM accounts WHERE employeeId = $1 AND password = $2',
+      [employeeId, password]
+    );
 
-  if (!account) {
-    return res.status(401).json({ success: false, message: 'Mã nhân viên hoặc mật khẩu không đúng' });
+    if (result.rows.length === 0) {
+      return res.status(401).json({ success: false, message: 'Mã nhân viên hoặc mật khẩu không đúng' });
+    }
+
+    const account = result.rows[0];
+    if (account.status !== 'active') {
+      return res.status(401).json({ success: false, message: 'Tài khoản đã bị khóa' });
+    }
+
+    res.json({ success: true, account });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
-
-  if (account.status !== 'active') {
-    return res.status(401).json({ success: false, message: 'Tài khoản đã bị khóa' });
-  }
-
-  const { password: _, ...safeAccount } = account;
-  res.json({ success: true, account: safeAccount });
 });
 
 export default router;

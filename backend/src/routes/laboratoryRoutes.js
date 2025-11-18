@@ -1,43 +1,7 @@
 import express from 'express';
+import pool from '../config/db.js';
 
 const router = express.Router();
-
-// In-memory data
-let laboratoryTests = [
-  {
-    id: '1',
-    testId: 'LAB001',
-    patientId: 'BN001',
-    patientName: 'Nguyễn Văn A',
-    testType: 'Xét nghiệm máu tổng quát',
-    sampleId: 'MAU001',
-    sampleType: 'Máu tĩnh mạch',
-    receivedDate: '2024-11-14',
-    receivedTime: '08:30',
-    technician: 'KTV Trần Văn E',
-    status: 'Hoàn thành',
-    priority: 'Bình thường',
-    results: {
-      'WBC (Bạch cầu)': { value: '7.2', unit: 'x10³/µL', range: '4.0-11.0', normal: true },
-      'RBC (Hồng cầu)': { value: '4.8', unit: 'x10⁶/µL', range: '4.5-5.5', normal: true }
-    }
-  },
-  {
-    id: '2',
-    testId: 'LAB002',
-    patientId: 'BN002',
-    patientName: 'Trần Thị B',
-    testType: 'Xét nghiệm sinh hóa',
-    sampleId: 'MAU002',
-    sampleType: 'Máu tĩnh mạch',
-    receivedDate: '2024-11-14',
-    receivedTime: '09:15',
-    technician: 'KTV Lê Thị G',
-    status: 'Đang xét nghiệm',
-    priority: 'Cấp tốc',
-    results: {}
-  }
-];
 
 /**
  * @swagger
@@ -48,25 +12,20 @@ let laboratoryTests = [
  *     responses:
  *       200:
  *         description: Danh sách xét nghiệm
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   id: { type: string }
- *                   testId: { type: string }
- *                   patientName: { type: string }
- *                   testType: { type: string }
- *                   status: { type: string }
  */
-router.get('/', (req, res) => {
-  res.json({
-    success: true,
-    count: laboratoryTests.length,
-    data: laboratoryTests
-  });
+router.get('/', async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT * FROM laboratory_tests ORDER BY created_at DESC'
+    );
+    res.json({
+      success: true,
+      count: result.rows.length,
+      data: result.rows
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 });
 
 /**
@@ -87,12 +46,19 @@ router.get('/', (req, res) => {
  *       404:
  *         description: Không tìm thấy
  */
-router.get('/:id', (req, res) => {
-  const test = laboratoryTests.find(t => t.id === req.params.id);
-  if (!test) {
-    return res.status(404).json({ success: false, message: 'Không tìm thấy xét nghiệm' });
+router.get('/:id', async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT * FROM laboratory_tests WHERE id = $1',
+      [req.params.id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy xét nghiệm' });
+    }
+    res.json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
-  res.json({ success: true, data: test });
 });
 
 /**
@@ -107,25 +73,46 @@ router.get('/:id', (req, res) => {
  *         application/json:
  *           schema:
  *             type: object
- *             required: [testId, patientId, patientName, testType, sampleId]
+ *             required: [test_id, patient_id, patient_name, test_type, sample_id, sample_type, received_date, received_time]
  *             properties:
- *               testId: { type: string }
- *               patientId: { type: string }
- *               patientName: { type: string }
- *               testType: { type: string }
- *               sampleId: { type: string }
+ *               test_id: { type: string }
+ *               patient_id: { type: string }
+ *               patient_name: { type: string }
+ *               test_type: { type: string }
+ *               sample_id: { type: string }
+ *               sample_type: { type: string }
+ *               received_date: { type: string }
+ *               received_time: { type: string }
  *     responses:
  *       201:
  *         description: Tạo thành công
  */
-router.post('/', (req, res) => {
-  const newTest = {
-    id: (laboratoryTests.length + 1).toString(),
-    ...req.body,
-    createdAt: new Date().toISOString()
-  };
-  laboratoryTests.push(newTest);
-  res.status(201).json({ success: true, data: newTest });
+router.post('/', async (req, res) => {
+  try {
+    const {
+      test_id, patient_id, patient_name, test_type, sample_id, sample_type,
+      received_date, received_time, technician, status, priority, results, notes
+    } = req.body;
+
+    const result = await pool.query(
+      `INSERT INTO laboratory_tests
+       (test_id, patient_id, patient_name, test_type, sample_id, sample_type,
+        received_date, received_time, technician, status, priority, results, notes)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+       RETURNING *`,
+      [test_id, patient_id, patient_name, test_type, sample_id, sample_type,
+       received_date, received_time, technician, status || 'Chờ xử lý',
+       priority || 'Bình thường', results || {}, notes]
+    );
+
+    res.status(201).json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    if (error.code === '23505') { // Unique violation
+      res.status(400).json({ success: false, message: 'Mã xét nghiệm đã tồn tại' });
+    } else {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
 });
 
 /**
@@ -150,13 +137,38 @@ router.post('/', (req, res) => {
  *       200:
  *         description: Cập nhật thành công
  */
-router.put('/:id', (req, res) => {
-  const index = laboratoryTests.findIndex(t => t.id === req.params.id);
-  if (index === -1) {
-    return res.status(404).json({ success: false, message: 'Không tìm thấy' });
+router.put('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const fields = req.body;
+
+    const updates = [];
+    const values = [];
+    let paramCount = 1;
+
+    Object.keys(fields).forEach(key => {
+      if (key !== 'id') {
+        updates.push(`${key} = $${paramCount}`);
+        values.push(fields[key]);
+        paramCount++;
+      }
+    });
+
+    values.push(id);
+
+    const result = await pool.query(
+      `UPDATE laboratory_tests SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING *`,
+      values
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy xét nghiệm' });
+    }
+
+    res.json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
-  laboratoryTests[index] = { ...laboratoryTests[index], ...req.body };
-  res.json({ success: true, data: laboratoryTests[index] });
 });
 
 /**
@@ -175,9 +187,21 @@ router.put('/:id', (req, res) => {
  *       200:
  *         description: Xóa thành công
  */
-router.delete('/:id', (req, res) => {
-  laboratoryTests = laboratoryTests.filter(t => t.id !== req.params.id);
-  res.json({ success: true, message: 'Xóa thành công' });
+router.delete('/:id', async (req, res) => {
+  try {
+    const result = await pool.query(
+      'DELETE FROM laboratory_tests WHERE id = $1 RETURNING *',
+      [req.params.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy xét nghiệm' });
+    }
+
+    res.json({ success: true, message: 'Xóa thành công' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 });
 
 /**
@@ -190,15 +214,26 @@ router.delete('/:id', (req, res) => {
  *       200:
  *         description: Thống kê
  */
-router.get('/statistics/summary', (req, res) => {
-  const stats = {
-    total: laboratoryTests.length,
-    pending: laboratoryTests.filter(t => t.status === 'Chờ xử lý').length,
-    inProgress: laboratoryTests.filter(t => t.status === 'Đang xét nghiệm').length,
-    completed: laboratoryTests.filter(t => t.status === 'Hoàn thành').length,
-    urgent: laboratoryTests.filter(t => t.priority === 'Cấp tốc').length
-  };
-  res.json({ success: true, data: stats });
+router.get('/statistics/summary', async (req, res) => {
+  try {
+    const totalResult = await pool.query('SELECT COUNT(*) FROM laboratory_tests');
+    const pendingResult = await pool.query("SELECT COUNT(*) FROM laboratory_tests WHERE status = 'Chờ xử lý'");
+    const inProgressResult = await pool.query("SELECT COUNT(*) FROM laboratory_tests WHERE status = 'Đang xét nghiệm'");
+    const completedResult = await pool.query("SELECT COUNT(*) FROM laboratory_tests WHERE status = 'Hoàn thành'");
+    const urgentResult = await pool.query("SELECT COUNT(*) FROM laboratory_tests WHERE priority = 'Cấp tốc'");
+
+    const stats = {
+      total: parseInt(totalResult.rows[0].count),
+      pending: parseInt(pendingResult.rows[0].count),
+      inProgress: parseInt(inProgressResult.rows[0].count),
+      completed: parseInt(completedResult.rows[0].count),
+      urgent: parseInt(urgentResult.rows[0].count)
+    };
+
+    res.json({ success: true, data: stats });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 });
 
 export default router;

@@ -1,44 +1,7 @@
 import express from 'express';
+import pool from '../config/db.js';
 
 const router = express.Router();
-
-// In-memory data
-let patients = [
-  {
-    id: '1',
-    patientId: 'BN001',
-    fullName: 'Nguyễn Văn An',
-    dateOfBirth: '1990-05-15',
-    gender: 'Nam',
-    phone: '0912345678',
-    address: '123 Nguyễn Huệ, Q1, TP.HCM',
-    idCard: '079090001234',
-    doctorInCharge: 'Bác sĩ Nguyễn Văn A',
-    visitDate: '2024-11-10',
-    diagnosis: 'Viêm họng cấp',
-    status: 'Đang điều trị',
-    medicalHistory: 'Không có bệnh nền',
-    allergies: 'Không',
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: '2',
-    patientId: 'BN002',
-    fullName: 'Trần Thị Bình',
-    dateOfBirth: '1985-08-20',
-    gender: 'Nữ',
-    phone: '0987654321',
-    address: '456 Lê Lợi, Q3, TP.HCM',
-    idCard: '079085002345',
-    doctorInCharge: 'Bác sĩ Nguyễn Văn A',
-    visitDate: '2024-11-12',
-    diagnosis: 'Cao huyết áp',
-    status: 'Tái khám',
-    medicalHistory: 'Đái tháo đường type 2',
-    allergies: 'Penicillin',
-    createdAt: new Date().toISOString()
-  }
-];
 
 /**
  * @swagger
@@ -50,12 +13,17 @@ let patients = [
  *       200:
  *         description: Danh sách bệnh nhân
  */
-router.get('/', (req, res) => {
-  res.json({
-    success: true,
-    count: patients.length,
-    data: patients
-  });
+router.get('/', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM patients ORDER BY visitDate DESC');
+    res.json({
+      success: true,
+      count: result.rows.length,
+      data: result.rows
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 });
 
 /**
@@ -76,12 +44,16 @@ router.get('/', (req, res) => {
  *       404:
  *         description: Không tìm thấy
  */
-router.get('/:id', (req, res) => {
-  const patient = patients.find(p => p.id === req.params.id);
-  if (!patient) {
-    return res.status(404).json({ success: false, message: 'Không tìm thấy bệnh nhân' });
+router.get('/:id', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM patients WHERE id = $1', [req.params.id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy bệnh nhân' });
+    }
+    res.json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
-  res.json({ success: true, data: patient });
 });
 
 /**
@@ -107,14 +79,28 @@ router.get('/:id', (req, res) => {
  *       201:
  *         description: Tạo thành công
  */
-router.post('/', (req, res) => {
-  const newPatient = {
-    id: (patients.length + 1).toString(),
-    ...req.body,
-    createdAt: new Date().toISOString()
-  };
-  patients.push(newPatient);
-  res.status(201).json({ success: true, data: newPatient });
+router.post('/', async (req, res) => {
+  try {
+    const {
+      patientId, fullName, dateOfBirth, gender, phone, address, idCard,
+      doctorInCharge, visitDate, diagnosis, status, medicalHistory, allergies
+    } = req.body;
+    const result = await pool.query(
+      `INSERT INTO patients
+       (patientId, fullName, dateOfBirth, gender, phone, address, idCard,
+        doctorInCharge, visitDate, diagnosis, status, medicalHistory, allergies)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *`,
+      [patientId, fullName, dateOfBirth, gender, phone, address, idCard,
+       doctorInCharge, visitDate, diagnosis, status, medicalHistory, allergies]
+    );
+    res.status(201).json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    if (error.code === '23505') {
+      res.status(400).json({ success: false, message: 'Mã bệnh nhân đã tồn tại' });
+    } else {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
 });
 
 /**
@@ -139,13 +125,35 @@ router.post('/', (req, res) => {
  *       200:
  *         description: Cập nhật thành công
  */
-router.put('/:id', (req, res) => {
-  const index = patients.findIndex(p => p.id === req.params.id);
-  if (index === -1) {
-    return res.status(404).json({ success: false, message: 'Không tìm thấy' });
+router.put('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const fields = req.body;
+    const updates = [];
+    const values = [];
+    let paramCount = 1;
+
+    Object.keys(fields).forEach(key => {
+      if (key !== 'id') {
+        updates.push(`${key} = $${paramCount}`);
+        values.push(fields[key]);
+        paramCount++;
+      }
+    });
+
+    values.push(id);
+    const result = await pool.query(
+      `UPDATE patients SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING *`,
+      values
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy' });
+    }
+    res.json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
-  patients[index] = { ...patients[index], ...req.body, updatedAt: new Date().toISOString() };
-  res.json({ success: true, data: patients[index] });
 });
 
 /**
@@ -164,9 +172,16 @@ router.put('/:id', (req, res) => {
  *       200:
  *         description: Xóa thành công
  */
-router.delete('/:id', (req, res) => {
-  patients = patients.filter(p => p.id !== req.params.id);
-  res.json({ success: true, message: 'Xóa thành công' });
+router.delete('/:id', async (req, res) => {
+  try {
+    const result = await pool.query('DELETE FROM patients WHERE id = $1 RETURNING *', [req.params.id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy' });
+    }
+    res.json({ success: true, message: 'Xóa thành công' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 });
 
 /**
@@ -185,14 +200,21 @@ router.delete('/:id', (req, res) => {
  *       200:
  *         description: Kết quả tìm kiếm
  */
-router.get('/search/:query', (req, res) => {
-  const query = req.params.query.toLowerCase();
-  const results = patients.filter(p =>
-    p.patientId.toLowerCase().includes(query) ||
-    p.fullName.toLowerCase().includes(query) ||
-    p.phone.toLowerCase().includes(query)
-  );
-  res.json({ success: true, count: results.length, data: results });
+router.get('/search/:query', async (req, res) => {
+  try {
+    const query = req.params.query.toLowerCase();
+    const result = await pool.query(
+      `SELECT * FROM patients
+       WHERE LOWER(patientId) LIKE $1
+          OR LOWER(fullName) LIKE $1
+          OR LOWER(phone) LIKE $1
+       ORDER BY visitDate DESC`,
+      [`%${query}%`]
+    );
+    res.json({ success: true, count: result.rows.length, data: result.rows });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 });
 
 export default router;
