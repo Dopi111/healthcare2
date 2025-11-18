@@ -19,6 +19,7 @@ import scheduleRoutes from './routes/scheduleRoutes.js';
 import accountRoutes from './routes/accountRoutes.js';
 import departmentRoutes from './routes/departmentRoutes.js';
 import positionRoutes from './routes/positionRoutes.js';
+import patientsRoutes from './routes/patientsRoutes.js';
 
 dotenv.config();
 
@@ -37,6 +38,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use(("/api/employee"), employeesRouters);
 app.use('/api/department', departmentRoutes);
 app.use('/api/position', positionRoutes);
+app.use('/api/patients', patientsRoutes);
 
 // New REST API routes
 app.use('/api/laboratory', laboratoryRoutes);

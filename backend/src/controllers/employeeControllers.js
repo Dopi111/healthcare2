@@ -201,17 +201,19 @@ export const getUserById = async (req, res) => {
 
   try {
     const q = `
-      SELECT 
-        id,
+      SELECT
+        infor_users_id,
         employee_id,
         phone_number,
         card_id,
         full_name,
         date_of_birth,
+        gender,
         permanent_address,
-        current_address
+        current_address,
+        role_user
       FROM infor_users
-      WHERE phone_number = $1 
+      WHERE phone_number = $1
         AND role_user = 'users'
       LIMIT 1;
     `;
@@ -276,14 +278,15 @@ export const updateEmployee = async (req, res) => {
 export const getListEmployee = async (req, res) => {
   try {
     const q = `
-      SELECT 
-        id,
+      SELECT
+        infor_users_id,
         full_name,
         employee_id,
         card_id,
         phone_number,
         permanent_address,
-        current_address
+        current_address,
+        role_user
       FROM infor_users
       WHERE role_user = 'employee'
       ORDER BY full_name ASC
@@ -292,7 +295,7 @@ export const getListEmployee = async (req, res) => {
     if (rowCount === 0) {
       return res.status(404).json({
         ok: false,
-        message: "❌ Không tìm thấy khách hàng có số điện thoại này!"
+        message: "❌ Không tìm thấy nhân viên nào!"
       });
     }
 
@@ -302,7 +305,7 @@ export const getListEmployee = async (req, res) => {
     });
 
   } catch (err) {
-    console.error("Lấy thông tin khách hàng không thành công:", err);
+    console.error("Lấy danh sách nhân viên không thành công:", err);
     return res.status(500).json({
       ok: false,
       error: "❌ Lỗi kết nối server!"
