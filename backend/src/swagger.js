@@ -27,7 +27,9 @@ const options = {
       { name: 'Expense', description: 'Chi phí hoạt động' },
       { name: 'Patient', description: 'Quản lý bệnh nhân' },
       { name: 'Schedule', description: 'Lịch làm việc' },
-      { name: 'Account', description: 'Quản lý tài khoản' }
+      { name: 'Account', description: 'Quản lý tài khoản' },
+      { name: 'Department', description: 'Danh sách phòng ban' },
+      { name: 'Position', description: 'Danh sách chức vụ' }
     ],
     components: {
       schemas: {
