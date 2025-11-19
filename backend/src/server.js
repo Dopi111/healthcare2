@@ -22,6 +22,7 @@ import positionRoutes from './routes/positionRoutes.js';
 import patientsRoutes from './routes/patientsRoutes.js';
 import userAuthRoutes from './routes/userAuthRoutes.js';
 import userProfileRoutes from './routes/userProfileRoutes.js';
+import appointmentsRoutes from './routes/appointmentsRoutes.js';
 
 dotenv.config();
 
@@ -55,6 +56,7 @@ app.use('/api/account', accountRoutes);
 // User API routes
 app.use('/api/user-auth', userAuthRoutes);
 app.use('/api/user-profile', userProfileRoutes);
+app.use('/api/appointments', appointmentsRoutes);
 
 const ensureDefaultAdmin = async () => {
   const adminPassword = process.env.ADMIN_PASSWORD || 'Admin@123';
