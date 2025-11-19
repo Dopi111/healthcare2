@@ -1,9 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Header from '../Home/Header';
 import Footer from '../Home/Footer';
 import styles from './DatLichHen.module.css';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+
 const DatLichHen = () => {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [message, setMessage] = useState({ text: '', type: '' });
+
   const [formData, setFormData] = useState({
     fullName: '',
     phone: '',
@@ -15,18 +21,105 @@ const DatLichHen = () => {
     notes: ''
   });
 
+  useEffect(() => {
+    // Check if user is logged in and auto-fill data
+    const userToken = localStorage.getItem('userToken');
+    const userId = localStorage.getItem('userId');
+
+    if (userToken && userId) {
+      setIsLoggedIn(true);
+      setFormData(prev => ({
+        ...prev,
+        fullName: localStorage.getItem('userName') || '',
+        phone: localStorage.getItem('userPhone') || '',
+        email: localStorage.getItem('userEmail') || ''
+      }));
+    }
+  }, []);
+
   const handleChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
+    if (message.text) setMessage({ text: '', type: '' });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Xử lý đặt lịch hẹn
-    console.log('Form data:', formData);
-    alert('Đặt lịch hẹn thành công! Chúng tôi sẽ liên hệ với bạn sớm nhất.');
+    setMessage({ text: '', type: '' });
+    setIsSubmitting(true);
+
+    try {
+      const userId = localStorage.getItem('userId');
+
+      const appointmentData = {
+        infor_users_id: userId || null,
+        full_name: formData.fullName,
+        phone_number: formData.phone,
+        email: formData.email,
+        specialty: formData.specialty,
+        doctor_name: formData.doctor || null,
+        appointment_date: formData.date,
+        appointment_time: formData.time,
+        notes: formData.notes
+      };
+
+      const response = await fetch(`${API_URL}/appointments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(appointmentData)
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setMessage({
+          text: 'Đặt lịch hẹn thành công! Chúng tôi sẽ liên hệ với bạn sớm nhất.',
+          type: 'success'
+        });
+
+        // Reset form appropriately
+        if (!isLoggedIn) {
+          setFormData({
+            fullName: '',
+            phone: '',
+            email: '',
+            date: '',
+            time: '',
+            specialty: '',
+            doctor: '',
+            notes: ''
+          });
+        } else {
+          setFormData(prev => ({
+            ...prev,
+            date: '',
+            time: '',
+            specialty: '',
+            doctor: '',
+            notes: ''
+          }));
+        }
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        setMessage({
+          text: data.message || 'Đặt lịch hẹn thất bại!',
+          type: 'error'
+        });
+      }
+    } catch (error) {
+      console.error('Appointment error:', error);
+      setMessage({
+        text: 'Lỗi kết nối đến server. Vui lòng thử lại!',
+        type: 'error'
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const specialties = [
@@ -65,7 +158,23 @@ const DatLichHen = () => {
         <section className={styles.bannerSection}>
           <h2 className={styles.bannerTitle}>Đặt Lịch Hẹn</h2>
           <p className={styles.bannerSubtitle}>Đặt lịch khám nhanh chóng, tiện lợi và an toàn</p>
+          {isLoggedIn && (
+            <p className="text-white text-sm mt-2">
+              👋 Xin chào, {formData.fullName}! Thông tin của bạn đã được điền tự động.
+            </p>
+          )}
         </section>
+
+        {/* Message Alert */}
+        {message.text && (
+          <div className={`mx-auto max-w-4xl mt-6 p-4 rounded-lg text-center font-medium ${
+            message.type === 'success'
+              ? 'bg-green-100 text-green-700 border-2 border-green-300'
+              : 'bg-red-100 text-red-700 border-2 border-red-300'
+          }`}>
+            {message.text}
+          </div>
+        )}
 
         {/* Form đặt lịch */}
         <section className={styles.formSection}>
@@ -101,6 +210,9 @@ const DatLichHen = () => {
                     onChange={handleChange}
                     className={styles.input}
                     placeholder="Nhập số điện thoại"
+                    pattern="[0-9]{10}"
+                    maxLength={10}
+                    disabled={isLoggedIn}
                     required
                   />
                 </div>
@@ -116,6 +228,7 @@ const DatLichHen = () => {
                     onChange={handleChange}
                     className={styles.input}
                     placeholder="Nhập email"
+                    disabled={isLoggedIn}
                   />
                 </div>
               </div>
@@ -152,7 +265,7 @@ const DatLichHen = () => {
                     value={formData.doctor}
                     onChange={handleChange}
                     className={styles.input}
-                    placeholder="Để trống nếu chưa chọn"
+                    placeholder="Ghi tên bác sĩ bạn muốn khám vào đây"
                   />
                 </div>
               </div>
@@ -168,6 +281,7 @@ const DatLichHen = () => {
                     value={formData.date}
                     onChange={handleChange}
                     className={styles.input}
+                    min={new Date().toISOString().split('T')[0]}
                     required
                   />
                 </div>
@@ -207,8 +321,22 @@ const DatLichHen = () => {
                 />
               </div>
 
-              <button type="submit" className={styles.submitButton}>
-                Xác nhận đặt lịch
+              <button
+                type="submit"
+                className={styles.submitButton}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Đang xử lý...
+                  </>
+                ) : (
+                  'Xác nhận đặt lịch'
+                )}
               </button>
             </form>
           </div>
