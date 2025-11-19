@@ -30,9 +30,9 @@ const Accounts_Management = () => {
     loadAccounts();
   }, []);
 
-  const loadAccounts = () => {
+  const loadAccounts = async () => {
     try {
-      const data = AccountService.getAllAccounts();
+      const data = await AccountService.getAllAccounts();
       setAccounts(data);
       setFilteredAccounts(data);
     } catch (error) {
@@ -48,8 +48,8 @@ const Accounts_Management = () => {
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(acc =>
-        acc.name.toLowerCase().includes(query) ||
-        acc.employeeId.toLowerCase().includes(query) ||
+        acc.name?.toLowerCase().includes(query) ||
+        acc.employee_id?.toLowerCase().includes(query) ||
         acc.email?.toLowerCase().includes(query) ||
         acc.phone?.toLowerCase().includes(query)
       );
@@ -98,8 +98,8 @@ const Accounts_Management = () => {
   const handleEdit = (account) => {
     setEditingAccount(account);
     setFormData({
-      employeeId: account.employeeId,
-      password: account.password,
+      employeeId: account.employee_id,
+      password: account.password || '',
       name: account.name,
       department: account.department,
       position: account.position,
@@ -112,14 +112,14 @@ const Accounts_Management = () => {
   };
 
   // Delete account
-  const handleDelete = (account) => {
+  const handleDelete = async (account) => {
     if (!window.confirm(`Bạn có chắc muốn xóa tài khoản "${account.name}"?`)) {
       return;
     }
 
     try {
-      AccountService.deleteAccount(account.id);
-      loadAccounts();
+      await AccountService.deleteAccount(account.id);
+      await loadAccounts();
       showMessage('success', 'Xóa tài khoản thành công!');
     } catch (error) {
       showMessage('error', error.message);
@@ -127,7 +127,7 @@ const Accounts_Management = () => {
   };
 
   // Submit form
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     // Validation
@@ -139,38 +139,29 @@ const Accounts_Management = () => {
     try {
       if (editingAccount) {
         // Update
-        AccountService.updateAccount(editingAccount.id, formData);
+        await AccountService.updateAccount(editingAccount.id, formData);
         showMessage('success', 'Cập nhật tài khoản thành công!');
       } else {
         // Add
-        AccountService.addAccount(formData);
+        await AccountService.addAccount(formData);
         showMessage('success', 'Thêm tài khoản mới thành công!');
       }
       setIsModalOpen(false);
-      loadAccounts();
+      await loadAccounts();
     } catch (error) {
       showMessage('error', error.message);
     }
   };
 
-  // Reset to default
+  // Reset to default - Note: This functionality is removed as we use PostgreSQL now
   const handleResetDefault = () => {
-    if (!window.confirm('Bạn có chắc muốn reset về tài khoản mặc định? Tất cả tài khoản hiện tại sẽ bị xóa!')) {
-      return;
-    }
-    try {
-      AccountService.resetToDefault();
-      loadAccounts();
-      showMessage('success', 'Đã reset về tài khoản mặc định!');
-    } catch (error) {
-      showMessage('error', 'Không thể reset!');
-    }
+    showMessage('error', 'Chức năng reset không khả dụng khi dùng database PostgreSQL!');
   };
 
   // Export accounts
-  const handleExport = () => {
+  const handleExport = async () => {
     try {
-      AccountService.exportAccounts();
+      await AccountService.exportAccounts();
       showMessage('success', 'Xuất dữ liệu thành công!');
     } catch (error) {
       showMessage('error', 'Không thể xuất dữ liệu!');

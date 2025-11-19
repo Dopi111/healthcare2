@@ -15,7 +15,7 @@ const router = express.Router();
  */
 router.get('/', async (req, res) => {
   try {
-    const result = await pool.query('SELECT id, employeeId, name, department, position, role, phone, email, status, created_at FROM accounts ORDER BY created_at DESC');
+    const result = await pool.query('SELECT id, employee_id, name, department, position, role, phone, email, status, created_at FROM accounts ORDER BY created_at DESC');
     res.json({
       success: true,
       count: result.rows.length,
@@ -47,7 +47,7 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, employeeId, name, department, position, role, phone, email, status, created_at FROM accounts WHERE id = $1',
+      'SELECT id, employee_id, name, department, position, role, phone, email, status, created_at FROM accounts WHERE id = $1',
       [req.params.id]
     );
     if (result.rows.length === 0) {
@@ -86,8 +86,8 @@ router.post('/', async (req, res) => {
     const { employeeId, password, name, department, position, role, phone, email, status } = req.body;
     const result = await pool.query(
       `INSERT INTO accounts
-       (employeeId, password, name, department, position, role, phone, email, status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id, employeeId, name, department, position, role, phone, email, status, created_at`,
+       (employee_id, password, name, department, position, role, phone, email, status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id, employee_id, name, department, position, role, phone, email, status, created_at`,
       [employeeId, password, name, department, position, role, phone, email, status || 'active']
     );
     res.status(201).json({ success: true, data: result.rows[0] });
@@ -140,7 +140,7 @@ router.put('/:id', async (req, res) => {
 
     values.push(id);
     const result = await pool.query(
-      `UPDATE accounts SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING id, employeeId, name, department, position, role, phone, email, status, created_at`,
+      `UPDATE accounts SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING id, employee_id, name, department, position, role, phone, email, status, created_at`,
       values
     );
 
@@ -171,8 +171,8 @@ router.put('/:id', async (req, res) => {
  */
 router.delete('/:id', async (req, res) => {
   try {
-    const checkResult = await pool.query('SELECT employeeId FROM accounts WHERE id = $1', [req.params.id]);
-    if (checkResult.rows.length > 0 && checkResult.rows[0].employeeid === 'admin') {
+    const checkResult = await pool.query('SELECT employee_id FROM accounts WHERE id = $1', [req.params.id]);
+    if (checkResult.rows.length > 0 && checkResult.rows[0].employee_id === 'admin') {
       return res.status(403).json({ success: false, message: 'Không thể xóa tài khoản admin' });
     }
 
@@ -212,7 +212,7 @@ router.post('/login', async (req, res) => {
   try {
     const { employeeId, password } = req.body;
     const result = await pool.query(
-      'SELECT id, employeeId, name, department, position, role, phone, email, status, created_at FROM accounts WHERE employeeId = $1 AND password = $2',
+      'SELECT id, employee_id, name, department, position, role, phone, email, status, created_at FROM accounts WHERE employee_id = $1 AND password = $2',
       [employeeId, password]
     );
 
