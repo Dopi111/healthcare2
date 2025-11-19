@@ -30,18 +30,21 @@ const Test_Result = () => {
     loadTestResults();
   }, []);
 
-  const loadTestResults = () => {
+  const loadTestResults = async () => {
     try {
-      const data = TestResultService.getAllTestResults();
-      setTestResults(data);
-      setFilteredResults(data);
+      const data = await TestResultService.getAllTestResults();
+      setTestResults(data || []);
+      setFilteredResults(data || []);
     } catch (error) {
+      console.error('Error loading test results:', error);
+      setTestResults([]);
+      setFilteredResults([]);
       showMessage('error', 'Không thể tải danh sách phiếu xét nghiệm!');
     }
   };
 
   useEffect(() => {
-    let filtered = [...testResults];
+    let filtered = [...(testResults || [])];
 
     if (searchQuery) {
       const query = searchQuery.toLowerCase();

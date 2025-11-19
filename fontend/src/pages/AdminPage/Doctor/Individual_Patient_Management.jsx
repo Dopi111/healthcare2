@@ -30,18 +30,21 @@ const Individual_Patient_Management = () => {
     loadPatients();
   }, []);
 
-  const loadPatients = () => {
+  const loadPatients = async () => {
     try {
-      const data = PatientService.getAllPatients();
-      setPatients(data);
-      setFilteredPatients(data);
+      const data = await PatientService.getAllPatients();
+      setPatients(data || []);
+      setFilteredPatients(data || []);
     } catch (error) {
+      console.error('Error loading patients:', error);
+      setPatients([]);
+      setFilteredPatients([]);
       showMessage('error', 'Không thể tải danh sách bệnh nhân!');
     }
   };
 
   useEffect(() => {
-    let filtered = [...patients];
+    let filtered = [...(patients || [])];
 
     if (searchQuery) {
       const query = searchQuery.toLowerCase();

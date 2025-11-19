@@ -353,11 +353,11 @@ INSERT INTO list_position (position_name) VALUES
 -- Insert 5 accounts mặc định (passwords đã hash với bcrypt)
 -- Password mặc định: admin123, doctor123, nurse123, reception123, accountant123
 INSERT INTO accounts (employee_id, password, name, department, position, role, phone, email) VALUES
-('admin', '$2a$10$YourHashedPasswordHere1', 'Administrator', 'Phòng Hành chính', 'Giám đốc', 'administrator', '0000000001', 'admin@healthcare.com'),
-('doctor01', '$2a$10$YourHashedPasswordHere2', 'Bác sĩ Nguyễn Văn A', 'Khoa Nội', 'Bác sĩ', 'doctor', '0000000002', 'doctor01@healthcare.com'),
-('nurse01', '$2a$10$YourHashedPasswordHere3', 'Y tá Trần Thị B', 'Khoa Nội', 'Y tá', 'nurse', '0000000003', 'nurse01@healthcare.com'),
-('reception01', '$2a$10$YourHashedPasswordHere4', 'Lễ tân Lê Văn C', 'Phòng Hành chính', 'Lễ tân', 'receptionist', '0000000004', 'reception01@healthcare.com'),
-('accountant01', '$2a$10$YourHashedPasswordHere5', 'Kế toán Phạm Thị D', 'Phòng Hành chính', 'Kế toán', 'accountant', '0000000005', 'accountant01@healthcare.com');
+('admin', '$2b$10$.e0Ee48ieiUXPIci6nh7TuQtUBY0xxeznREJw0BKR55/Ajo0wr3jK', 'Administrator', 'Phòng Hành chính', 'Giám đốc', 'administrator', '0000000001', 'admin@healthcare.com'),
+('doctor01', '$2b$10$0O.kXIoxPVhJfgwr.Lmeceh10LCa0j/P013UNrtdTh4K329mmGhUK', 'Bác sĩ Nguyễn Văn A', 'Khoa Nội', 'Bác sĩ', 'doctor', '0000000002', 'doctor01@healthcare.com'),
+('nurse01', '$2b$10$/n7pXV3MYC/rBPs0VSrRJO.ZiZ/igg1OViFA0WhjyyGRQfzsN102O', 'Y tá Trần Thị B', 'Khoa Nội', 'Y tá', 'nurse', '0000000003', 'nurse01@healthcare.com'),
+('reception01', '$2b$10$HO7fr1svajBaKyfYvBeyiO1MYpd1wuB9Equjw8n2ZGcfFk87QQs26', 'Lễ tân Lê Văn C', 'Phòng Hành chính', 'Lễ tân', 'receptionist', '0000000004', 'reception01@healthcare.com'),
+('accountant01', '$2b$10$C/0g1a7iB9/G5moIi5QCc.KLdcuDPZcMkctqEakHOQTKbtwrJu2wa', 'Kế toán Phạm Thị D', 'Phòng Hành chính', 'Kế toán', 'accountant', '0000000005', 'accountant01@healthcare.com');
 
 DO $$
 BEGIN
