@@ -15,6 +15,11 @@ import { defineConfig } from "vite"
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  // Server configuration
+  server: {
+    port: 5173, // Fixed port for frontend
+    strictPort: true, // Fail if port is already in use
+  },
   // Avoid Vite dependency optimization trying to pre-bundle native bindings
   // (lightningcss ships a native pkg that sometimes cannot be resolved on Windows/ESBuild)
   optimizeDeps: {
