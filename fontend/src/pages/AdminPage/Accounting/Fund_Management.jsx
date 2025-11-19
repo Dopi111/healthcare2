@@ -26,19 +26,23 @@ const Fund_Management = () => {
     loadFunds();
   }, []);
 
-  const loadFunds = () => {
+  const loadFunds = async () => {
     try {
-      const data = FundService.getAllFunds();
-      setFunds(data);
-      setFilteredFunds(data);
-      setStats(FundService.getStatistics());
+      const data = await FundService.getAllFunds();
+      setFunds(data || []);
+      setFilteredFunds(data || []);
+      const statistics = await FundService.getStatistics();
+      setStats(statistics);
     } catch (error) {
+      console.error('Error loading funds:', error);
+      setFunds([]);
+      setFilteredFunds([]);
       showMessage('error', 'Không thể tải danh sách quỹ!');
     }
   };
 
   useEffect(() => {
-    let filtered = [...funds];
+    let filtered = [...(funds || [])];
 
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -81,20 +85,21 @@ const Fund_Management = () => {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (fund) => {
+  const handleDelete = async (fund) => {
     if (!window.confirm(`Bạn có chắc muốn xóa giao dịch "${fund.transactionId}"?`)) {
       return;
     }
     try {
-      FundService.deleteFund(fund.id);
-      loadFunds();
+      await FundService.deleteFund(fund.id);
+      await loadFunds();
       showMessage('success', 'Xóa giao dịch thành công!');
     } catch (error) {
+      console.error('Error deleting fund:', error);
       showMessage('error', error.message);
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.transactionId || !formData.amount || formData.amount <= 0) {
       showMessage('error', 'Vui lòng điền đầy đủ thông tin!');
@@ -103,15 +108,16 @@ const Fund_Management = () => {
 
     try {
       if (editingFund) {
-        FundService.updateFund(editingFund.id, formData);
+        await FundService.updateFund(editingFund.id, formData);
         showMessage('success', 'Cập nhật giao dịch thành công!');
       } else {
-        FundService.addFund(formData);
+        await FundService.addFund(formData);
         showMessage('success', 'Thêm giao dịch mới thành công!');
       }
       setIsModalOpen(false);
-      loadFunds();
+      await loadFunds();
     } catch (error) {
+      console.error('Error submitting fund:', error);
       showMessage('error', error.message);
     }
   };

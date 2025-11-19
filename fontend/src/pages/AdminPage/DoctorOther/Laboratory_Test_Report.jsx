@@ -29,18 +29,21 @@ const Laboratory_Test_Report = () => {
     loadTests();
   }, []);
 
-  const loadTests = () => {
+  const loadTests = async () => {
     try {
-      const data = LaboratoryService.getAllTests();
-      setTests(data);
-      setFilteredTests(data);
+      const data = await LaboratoryService.getAllTests();
+      setTests(data || []);
+      setFilteredTests(data || []);
     } catch (error) {
+      console.error('Error loading tests:', error);
+      setTests([]);
+      setFilteredTests([]);
       showMessage('error', 'Không thể tải danh sách xét nghiệm!');
     }
   };
 
   useEffect(() => {
-    let filtered = [...tests];
+    let filtered = [...(tests || [])];
 
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -91,20 +94,21 @@ const Laboratory_Test_Report = () => {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (test) => {
+  const handleDelete = async (test) => {
     if (!window.confirm(`Bạn có chắc muốn xóa phiếu xét nghiệm "${test.testId}"?`)) {
       return;
     }
     try {
-      LaboratoryService.deleteTest(test.id);
-      loadTests();
+      await LaboratoryService.deleteTest(test.id);
+      await loadTests();
       showMessage('success', 'Xóa phiếu xét nghiệm thành công!');
     } catch (error) {
+      console.error('Error deleting test:', error);
       showMessage('error', error.message);
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.testId || !formData.patientId || !formData.patientName || !formData.testType || !formData.sampleId) {
       showMessage('error', 'Vui lòng điền đầy đủ thông tin bắt buộc!');
@@ -113,25 +117,27 @@ const Laboratory_Test_Report = () => {
 
     try {
       if (editingTest) {
-        LaboratoryService.updateTest(editingTest.id, formData);
+        await LaboratoryService.updateTest(editingTest.id, formData);
         showMessage('success', 'Cập nhật phiếu xét nghiệm thành công!');
       } else {
-        LaboratoryService.addTest(formData);
+        await LaboratoryService.addTest(formData);
         showMessage('success', 'Nhận phiếu xét nghiệm mới thành công!');
       }
       setIsModalOpen(false);
-      loadTests();
+      await loadTests();
     } catch (error) {
+      console.error('Error submitting test:', error);
       showMessage('error', error.message);
     }
   };
 
-  const handleUpdateStatus = (test, newStatus) => {
+  const handleUpdateStatus = async (test, newStatus) => {
     try {
-      LaboratoryService.updateTestStatus(test.id, newStatus);
-      loadTests();
+      await LaboratoryService.updateTestStatus(test.id, newStatus);
+      await loadTests();
       showMessage('success', `Đã chuyển trạng thái sang: ${newStatus}`);
     } catch (error) {
+      console.error('Error updating test status:', error);
       showMessage('error', error.message);
     }
   };
