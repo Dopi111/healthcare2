@@ -56,6 +56,8 @@ const ensureDefaultAdmin = async () => {
   const position = 'Admin';
   const department_id = 1; // giả sử đã có phòng ban IT
   const phone_number = '0000000000'; //tránh null
+  const card_id = '000000000000'; // Card ID mặc định cho admin (12 số)
+  const role_user = 'employee'; // Admin là employee
 
   try {
     //Kiểm tra xem có admin nào chưa
@@ -71,10 +73,10 @@ const ensureDefaultAdmin = async () => {
     if (authCheck.rowCount === 0 && userCheck.rowCount === 0) {
         //Tạo user
       const userResult = await pool.query(
-        `INSERT INTO infor_users (phone_number, full_name)
-         VALUES ($1, $2)
+        `INSERT INTO infor_users (phone_number, full_name, card_id, role_user)
+         VALUES ($1, $2, $3, $4)
          RETURNING infor_users_id`,
-        [phone_number, full_name]
+        [phone_number, full_name, card_id, role_user]
       );
       const infor_users_id = userResult.rows[0].infor_users_id;
 
