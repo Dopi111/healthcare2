@@ -25,6 +25,15 @@ import userProfileRoutes from './routes/userProfileRoutes.js';
 import appointmentsRoutes from './routes/appointmentsRoutes.js';
 import labResultsRoutes from './routes/labResultsRoutes.js';
 
+// Import new database-backed routes (replacing localStorage)
+import patientsNewRoutes from './routes/patientsNewRoutes.js';
+import expensesNewRoutes from './routes/expensesNewRoutes.js';
+import fundsNewRoutes from './routes/fundsNewRoutes.js';
+import insuranceNewRoutes from './routes/insuranceNewRoutes.js';
+import revenueNewRoutes from './routes/revenueNewRoutes.js';
+import laboratoryTestsRoutes from './routes/laboratoryTestsRoutes.js';
+import testResultsNewRoutes from './routes/testResultsNewRoutes.js';
+
 dotenv.config();
 
 const PORT = process.env.PORT || 5001;
@@ -59,6 +68,15 @@ app.use('/api/user-auth', userAuthRoutes);
 app.use('/api/user-profile', userProfileRoutes);
 app.use('/api/appointments', appointmentsRoutes);
 app.use('/api/lab-results', labResultsRoutes);
+
+// New database-backed API routes (replacing localStorage)
+app.use('/api/patients-new', patientsNewRoutes);
+app.use('/api/expenses-new', expensesNewRoutes);
+app.use('/api/funds-new', fundsNewRoutes);
+app.use('/api/insurance-new', insuranceNewRoutes);
+app.use('/api/revenue-new', revenueNewRoutes);
+app.use('/api/laboratory-tests', laboratoryTestsRoutes);
+app.use('/api/test-results-new', testResultsNewRoutes);
 
 const ensureDefaultAdmin = async () => {
   const adminPassword = process.env.ADMIN_PASSWORD || 'Admin@123';
