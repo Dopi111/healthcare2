@@ -126,32 +126,7 @@ CREATE TRIGGER update_medical_history_updated_at
   EXECUTE FUNCTION update_updated_at_column();
 
 -- ============================================
--- 7. INSERT SAMPLE DATA for Testing
--- ============================================
-
--- Sample user (assuming infor_users_id = 1 exists or will be created)
--- Insert medical info for demo user
-INSERT INTO user_medical_info (infor_users_id, blood_type, height, weight, allergies, chronic_diseases, medications, notes)
-VALUES
-  (1, 'A+', 170.5, 68.0, 'Không có', 'Không có', 'Không có', 'Sức khỏe tốt')
-ON CONFLICT DO NOTHING;
-
--- Sample relatives
-INSERT INTO user_relatives (infor_users_id, full_name, relation, phone_number, is_emergency_contact)
-VALUES
-  (1, 'Trần Văn Hòa', 'Cha', '0909123456', TRUE),
-  (1, 'Nguyễn Thị Hoa', 'Mẹ', '0909988776', TRUE)
-ON CONFLICT DO NOTHING;
-
--- Sample medical history
-INSERT INTO user_medical_history (infor_users_id, visit_date, clinic_name, diagnosis, treatment)
-VALUES
-  (1, '2024-03-12', 'Phòng khám Quận 1', 'Cảm cúm', 'Nghỉ ngơi, uống nhiều nước'),
-  (1, '2024-06-01', 'Phòng khám Trung Tâm', 'Khám định kỳ', 'Tình trạng sức khỏe tốt')
-ON CONFLICT DO NOTHING;
-
--- ============================================
--- 8. VERIFICATION
+-- 7. VERIFICATION
 -- ============================================
 
 DO $$
@@ -171,6 +146,8 @@ BEGIN
   RAISE NOTICE 'Medical Info Records: %', medical_info_count;
   RAISE NOTICE 'Relatives Records: %', relatives_count;
   RAISE NOTICE 'Medical History Records: %', history_count;
+  RAISE NOTICE '========================================';
+  RAISE NOTICE 'Note: Sample data will be created when users register';
   RAISE NOTICE '========================================';
 END $$;
 

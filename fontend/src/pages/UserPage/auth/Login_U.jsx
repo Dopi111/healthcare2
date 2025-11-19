@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+const API_URL = 'http://localhost:5001/api';
+
 const Login_U = () => {
     const [phoneNumber, setPhoneNumber] = useState("");
     const [password, setPassword] = useState("");
@@ -13,14 +15,27 @@ const Login_U = () => {
         setMessage('');
         setIsLoading(true);
 
-        // Simulate API delay
-        setTimeout(() => {
-            // TODO: Replace with actual API authentication
-            if (phoneNumber && password) {
+        try {
+            const response = await fetch(`${API_URL}/user-auth/login`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    phone_number: phoneNumber,
+                    password: password
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
                 // Store auth data in localStorage
                 localStorage.setItem('userToken', 'user-token-' + Date.now());
-                localStorage.setItem('userPhone', phoneNumber);
-                localStorage.setItem('userName', 'Trần Văn Nam'); // TODO: Get from API
+                localStorage.setItem('userId', data.data.user_id);
+                localStorage.setItem('userPhone', data.data.phone_number);
+                localStorage.setItem('userName', data.data.full_name);
+                localStorage.setItem('userEmail', data.data.email || '');
                 localStorage.setItem('userRole', 'Bệnh nhân');
 
                 setMessage('Đăng nhập thành công!');
@@ -30,10 +45,14 @@ const Login_U = () => {
                     navigate('/User/HomePage', { replace: true });
                 }, 500);
             } else {
-                setMessage('Vui lòng nhập đầy đủ thông tin!');
+                setMessage(data.message || 'Đăng nhập thất bại!');
                 setIsLoading(false);
             }
-        }, 800);
+        } catch (error) {
+            console.error('Login error:', error);
+            setMessage('Lỗi kết nối đến server. Vui lòng thử lại!');
+            setIsLoading(false);
+        }
     };
 
     const handleRegister = () => {
