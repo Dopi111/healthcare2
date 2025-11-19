@@ -87,62 +87,53 @@ export const createAppointment = async (req, res) => {
 /**
  * Get all appointments (for admin)
  * GET /api/appointments
+ * OPTIMIZED: Uses window function to get count in single query
  */
 export const getAllAppointments = async (req, res) => {
   const { status, limit = 50, offset = 0, date } = req.query;
 
   try {
-    let query = 'SELECT * FROM appointments WHERE 1=1';
+    // Build WHERE clause
+    let whereClause = 'WHERE 1=1';
     const params = [];
     let paramCount = 0;
 
     if (status) {
       paramCount++;
-      query += ` AND status = $${paramCount}`;
+      whereClause += ` AND status = $${paramCount}`;
       params.push(status);
     }
 
     if (date) {
       paramCount++;
-      query += ` AND appointment_date = $${paramCount}`;
+      whereClause += ` AND appointment_date = $${paramCount}`;
       params.push(date);
     }
 
-    query += ' ORDER BY appointment_date DESC, appointment_time DESC';
+    // OPTIMIZED: Single query with window function for total count
+    const query = `
+      SELECT
+        *,
+        COUNT(*) OVER() as total_count
+      FROM appointments
+      ${whereClause}
+      ORDER BY appointment_date DESC, appointment_time DESC
+      LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}
+    `;
 
-    paramCount++;
-    query += ` LIMIT $${paramCount}`;
-    params.push(limit);
-
-    paramCount++;
-    query += ` OFFSET $${paramCount}`;
-    params.push(offset);
-
+    params.push(limit, offset);
     const result = await pool.query(query, params);
 
-    // Get total count
-    let countQuery = 'SELECT COUNT(*) FROM appointments WHERE 1=1';
-    const countParams = [];
-    let countParamCount = 0;
+    // Extract total from first row (all rows have same total_count due to window function)
+    const total = result.rows.length > 0 ? parseInt(result.rows[0].total_count) : 0;
 
-    if (status) {
-      countParamCount++;
-      countQuery += ` AND status = $${countParamCount}`;
-      countParams.push(status);
-    }
-
-    if (date) {
-      countParamCount++;
-      countQuery += ` AND appointment_date = $${countParamCount}`;
-      countParams.push(date);
-    }
-
-    const countResult = await pool.query(countQuery, countParams);
+    // Remove total_count from each row before sending response
+    const data = result.rows.map(({ total_count, ...row }) => row);
 
     res.status(200).json({
       success: true,
-      data: result.rows,
-      total: parseInt(countResult.rows[0].count),
+      data: data,
+      total: total,
       limit: parseInt(limit),
       offset: parseInt(offset)
     });
@@ -158,51 +149,48 @@ export const getAllAppointments = async (req, res) => {
 /**
  * Get appointments by user ID
  * GET /api/appointments/user/:user_id
+ * OPTIMIZED: Uses window function to get count in single query
  */
 export const getUserAppointments = async (req, res) => {
   const { user_id } = req.params;
   const { status, limit = 20, offset = 0 } = req.query;
 
   try {
-    let query = 'SELECT * FROM appointments WHERE infor_users_id = $1';
+    // Build WHERE clause
+    let whereClause = 'WHERE infor_users_id = $1';
     const params = [user_id];
     let paramCount = 1;
 
     if (status) {
       paramCount++;
-      query += ` AND status = $${paramCount}`;
+      whereClause += ` AND status = $${paramCount}`;
       params.push(status);
     }
 
-    query += ' ORDER BY appointment_date DESC, appointment_time DESC';
+    // OPTIMIZED: Single query with window function for total count
+    const query = `
+      SELECT
+        *,
+        COUNT(*) OVER() as total_count
+      FROM appointments
+      ${whereClause}
+      ORDER BY appointment_date DESC, appointment_time DESC
+      LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}
+    `;
 
-    paramCount++;
-    query += ` LIMIT $${paramCount}`;
-    params.push(limit);
-
-    paramCount++;
-    query += ` OFFSET $${paramCount}`;
-    params.push(offset);
-
+    params.push(limit, offset);
     const result = await pool.query(query, params);
 
-    // Get total count
-    let countQuery = 'SELECT COUNT(*) FROM appointments WHERE infor_users_id = $1';
-    const countParams = [user_id];
-    let countParamCount = 1;
+    // Extract total from first row
+    const total = result.rows.length > 0 ? parseInt(result.rows[0].total_count) : 0;
 
-    if (status) {
-      countParamCount++;
-      countQuery += ` AND status = $${countParamCount}`;
-      countParams.push(status);
-    }
-
-    const countResult = await pool.query(countQuery, countParams);
+    // Remove total_count from each row before sending response
+    const data = result.rows.map(({ total_count, ...row }) => row);
 
     res.status(200).json({
       success: true,
-      data: result.rows,
-      total: parseInt(countResult.rows[0].count),
+      data: data,
+      total: total,
       limit: parseInt(limit),
       offset: parseInt(offset)
     });
