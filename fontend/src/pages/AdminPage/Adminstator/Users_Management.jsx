@@ -33,8 +33,9 @@ const Users_Management = () => {
   const handleDelete = async (id) => {
     if (!window.confirm('Bạn có chắc muốn xóa người dùng này?')) return;
     try {
-      // TODO: Implement delete user API
-      alert('Chức năng xóa đang được phát triển!');
+      await axios.delete(`${API_URL}/employee/delete-user/${id}`);
+      alert('Xóa người dùng thành công!');
+      loadData();
     } catch (err) {
       alert(err.response?.data?.message || 'Xóa thất bại!');
     }
