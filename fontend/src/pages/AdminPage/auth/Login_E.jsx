@@ -10,12 +10,24 @@ const Login_E = () => {
     const [demoAccounts, setDemoAccounts] = useState([]);
     const navigate = useNavigate();
 
-    // Initialize accounts and load demo list
+    // Load demo accounts list
     useEffect(() => {
-        AccountService.initializeAccounts();
-        const accounts = AccountService.getAllAccounts();
-        // Show only first 3 accounts for demo
-        setDemoAccounts(accounts.slice(0, 3));
+        const loadDemoAccounts = async () => {
+            try {
+                const accounts = await AccountService.getAllAccounts();
+                // Show only first 3 accounts for demo
+                setDemoAccounts(accounts.slice(0, 3));
+            } catch (error) {
+                console.error('Error loading demo accounts:', error);
+                // Set default demo accounts if API fails
+                setDemoAccounts([
+                    { name: 'Admin', employeeid: 'admin', password: 'admin123' },
+                    { name: 'Bác sĩ Nguyễn Văn A', employeeid: 'doctor01', password: 'doctor123' },
+                    { name: 'Y tá Trần Thị B', employeeid: 'nurse01', password: 'nurse123' }
+                ]);
+            }
+        };
+        loadDemoAccounts();
     }, []);
 
     const handleLogin = async (e) => {
@@ -23,19 +35,18 @@ const Login_E = () => {
         setMessage('');
         setIsLoading(true);
 
-        // Simulate API delay
-        setTimeout(() => {
-            // Authenticate using AccountService
-            const result = AccountService.authenticate(employeeId, password);
+        try {
+            // Authenticate using AccountService API
+            const result = await AccountService.authenticate(employeeId, password);
 
             if (result.success) {
                 const account = result.account;
 
                 // Store auth data in localStorage
                 localStorage.setItem('token', 'static-token-' + Date.now());
-                localStorage.setItem('employeeId', account.employeeId);
+                localStorage.setItem('employeeId', account.employeeid || account.employeeId);
                 localStorage.setItem('employeeName', account.name);
-                localStorage.setItem('department', account.department);
+                localStorage.setItem('department', account.department || '');
                 localStorage.setItem('role', account.role);
 
                 setMessage('Đăng nhập thành công!');
@@ -48,7 +59,11 @@ const Login_E = () => {
                 setMessage(result.message);
                 setIsLoading(false);
             }
-        }, 800);
+        } catch (error) {
+            console.error('Login error:', error);
+            setMessage('Lỗi kết nối đến server!');
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -152,7 +167,7 @@ const Login_E = () => {
                         <div className="space-y-1 text-xs text-[var(--color-admin-text-light-secondary)]">
                             {demoAccounts.map((acc, idx) => (
                                 <p key={idx}>
-                                    • {acc.name}: <code className="bg-white px-2 py-0.5 rounded">{acc.employeeId}</code> / <code className="bg-white px-2 py-0.5 rounded">{acc.password}</code>
+                                    • {acc.name}: <code className="bg-white px-2 py-0.5 rounded">{acc.employeeid || acc.employeeId}</code> / <code className="bg-white px-2 py-0.5 rounded">{acc.password}</code>
                                 </p>
                             ))}
                         </div>
