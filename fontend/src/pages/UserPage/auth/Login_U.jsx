@@ -42,7 +42,7 @@ const Login_U = () => {
 
                 // Redirect to home page after 500ms
                 setTimeout(() => {
-                    navigate('/User/HomePage', { replace: true });
+                    navigate('/', { replace: true });
                 }, 500);
             } else {
                 setMessage(data.message || 'Đăng nhập thất bại!');
