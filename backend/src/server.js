@@ -82,25 +82,31 @@ const ensureDefaultAdmin = async () => {
   const adminPassword = process.env.ADMIN_PASSWORD || 'Admin@123';
   const full_name = 'Admin System';
   const position = 'Admin';
-  const department_id = 1; // giả sử đã có phòng ban IT
-  const phone_number = '0000000000'; //tránh null
+  const phone_number = '0000000000'; // Tránh null
   const card_id = '000000000000'; // Card ID mặc định cho admin (12 số)
   const role_user = 'employee'; // Admin là employee
   const employee_id_str = '0000000001'; // Employee ID mặc định cho admin (10 số)
 
   try {
-    //Kiểm tra xem có admin nào chưa
+    // Kiểm tra xem có admin nào chưa
     const authCheck = await pool.query(
-    `SELECT 1 FROM infor_auth_employee WHERE position = 'Admin' LIMIT 1`
+      `SELECT 1 FROM infor_auth_employee WHERE position = 'Admin' LIMIT 1`
     );
 
     const userCheck = await pool.query(
-        'SELECT 1 FROM infor_users WHERE phone_number = $1',
-        [phone_number]
+      'SELECT 1 FROM infor_users WHERE phone_number = $1',
+      [phone_number]
     );
 
     if (authCheck.rowCount === 0 && userCheck.rowCount === 0) {
-        //Tạo user
+      // Lấy department_id hợp lệ từ database (Phòng Hành chính)
+      const deptResult = await pool.query(
+        `SELECT department_id FROM list_department WHERE department_name = 'Phòng Hành chính' LIMIT 1`
+      );
+
+      const department_id = deptResult.rows.length > 0 ? deptResult.rows[0].department_id : null;
+
+      // Tạo user
       const userResult = await pool.query(
         `INSERT INTO infor_users (phone_number, full_name, card_id, role_user, employee_id)
          VALUES ($1, $2, $3, $4, $5)
@@ -109,7 +115,7 @@ const ensureDefaultAdmin = async () => {
       );
       const infor_users_id = userResult.rows[0].infor_users_id;
 
-      //Tạo nhân viên (employee)
+      // Tạo nhân viên (employee) - department_id có thể là NULL nếu không tìm thấy
       const employeeResult = await pool.query(
         `INSERT INTO infor_employee (infor_users_id, position_id, department_id, status_employee)
          VALUES ($1, NULL, $2, 'active')
@@ -118,7 +124,7 @@ const ensureDefaultAdmin = async () => {
       );
       const infor_employee_id = employeeResult.rows[0].infor_employee_id;
 
-      //Tạo auth
+      // Tạo auth
       const hashed = await bcrypt.hash(adminPassword, 10);
       await pool.query(
         `INSERT INTO infor_auth_employee (employee_id, password_employee, position)
@@ -126,12 +132,17 @@ const ensureDefaultAdmin = async () => {
         [employee_id_str, hashed, position]
       );
 
-      console.log(`✅ Default admin created successfully. Employee ID: ${employee_id_str}`);
+      console.log(`✅ Default admin created successfully. Employee ID: ${employee_id_str}, Department: ${department_id || 'None'}`);
     } else {
-        console.log('ℹ️ Default admin already exists.');
+      console.log('ℹ️ Default admin already exists.');
     }
   } catch (err) {
     console.error('❌ Error ensuring default admin:', err.message || err);
+    // Log thêm chi tiết để debug
+    if (err.constraint) {
+      console.error('   Constraint violation:', err.constraint);
+      console.error('   Detail:', err.detail);
+    }
   }
 };
 
