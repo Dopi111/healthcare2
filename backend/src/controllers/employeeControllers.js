@@ -272,7 +272,7 @@ export const updateEmployee = async (req, res) => {
   }
 };
 
-/*--------- 
+/*---------
  GET LIST EMPLOYEE
 ---------*/
 export const getListEmployee = async (req, res) => {
@@ -284,11 +284,18 @@ export const getListEmployee = async (req, res) => {
         employee_id,
         card_id,
         phone_number,
+        email,
+        date_of_birth,
+        gender,
+        position,
+        department,
+        specialty,
         permanent_address,
         current_address,
-        role_user
+        role_user,
+        created_at
       FROM infor_users
-      WHERE role_user = 'employee'
+      WHERE role_user = 'employee' OR role_user IS NULL OR role_user != 'users'
       ORDER BY full_name ASC
     `;
     const { rows, rowCount } = await db.query(q);
@@ -312,3 +319,284 @@ export const getListEmployee = async (req, res) => {
     });
   }
 }
+
+/*---------
+ CREATE EMPLOYEE (Full data)
+---------*/
+export const createEmployeeFull = async (req, res) => {
+  const {
+    full_name,
+    employee_id,
+    phone_number,
+    card_id,
+    email,
+    date_of_birth,
+    gender,
+    position,
+    department,
+    specialty,
+    permanent_address,
+    current_address,
+    password
+  } = req.body;
+
+  try {
+    // Validation
+    if (!full_name || !employee_id || !phone_number || !card_id) {
+      return res.status(400).json({
+        success: false,
+        message: "Vui lòng nhập đầy đủ thông tin bắt buộc!"
+      });
+    }
+
+    const isNumeric = /^\d+$/;
+
+    // Validate formats
+    if (!isNumeric.test(employee_id) || employee_id.length !== 10) {
+      return res.status(400).json({
+        success: false,
+        message: "Mã nhân viên phải gồm đúng 10 chữ số!"
+      });
+    }
+
+    if (!isNumeric.test(phone_number) || phone_number.length !== 10) {
+      return res.status(400).json({
+        success: false,
+        message: "Số điện thoại phải gồm đúng 10 chữ số!"
+      });
+    }
+
+    if (!isNumeric.test(card_id) || card_id.length !== 12) {
+      return res.status(400).json({
+        success: false,
+        message: "Số CCCD phải gồm đúng 12 chữ số!"
+      });
+    }
+
+    // Check for duplicates
+    const checkQuery = `
+      SELECT * FROM infor_users
+      WHERE employee_id = $1 OR phone_number = $2 OR card_id = $3
+    `;
+    const checkResult = await db.query(checkQuery, [employee_id, phone_number, card_id]);
+
+    if (checkResult.rowCount > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Mã nhân viên, số điện thoại hoặc CCCD đã tồn tại!"
+      });
+    }
+
+    // Hash password (default: employee_id if not provided)
+    const hashedPassword = await bcrypt.hash(password || employee_id, 10);
+
+    // Insert new employee
+    const insertQuery = `
+      INSERT INTO infor_users
+        (employee_id, phone_number, card_id, password, full_name, email,
+         date_of_birth, gender, position, department, specialty,
+         permanent_address, current_address, role_user)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 'employee')
+      RETURNING infor_users_id, full_name, employee_id, phone_number, card_id,
+                email, date_of_birth, gender, position, department, specialty,
+                permanent_address, current_address, role_user, created_at
+    `;
+
+    const result = await db.query(insertQuery, [
+      employee_id,
+      phone_number,
+      card_id,
+      hashedPassword,
+      full_name,
+      email || null,
+      date_of_birth || null,
+      gender || 'Nam',
+      position || null,
+      department || null,
+      specialty || null,
+      permanent_address || null,
+      current_address || null
+    ]);
+
+    return res.status(201).json({
+      success: true,
+      message: "Thêm nhân viên thành công!",
+      data: result.rows[0]
+    });
+
+  } catch (err) {
+    console.error("Create employee error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Lỗi server: " + err.message
+    });
+  }
+};
+
+/*---------
+ UPDATE EMPLOYEE (Full data)
+---------*/
+export const updateEmployeeFull = async (req, res) => {
+  const { employee_id } = req.params;
+  const {
+    full_name,
+    phone_number,
+    card_id,
+    email,
+    date_of_birth,
+    gender,
+    position,
+    department,
+    specialty,
+    permanent_address,
+    current_address
+  } = req.body;
+
+  try {
+    // Check if employee exists
+    const checkQuery = 'SELECT * FROM infor_users WHERE employee_id = $1';
+    const checkResult = await db.query(checkQuery, [employee_id]);
+
+    if (checkResult.rowCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy nhân viên!"
+      });
+    }
+
+    // Check for duplicates (excluding current employee)
+    const duplicateQuery = `
+      SELECT * FROM infor_users
+      WHERE employee_id != $1 AND (phone_number = $2 OR card_id = $3)
+    `;
+    const duplicateResult = await db.query(duplicateQuery, [employee_id, phone_number, card_id]);
+
+    if (duplicateResult.rowCount > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Số điện thoại hoặc CCCD đã tồn tại!"
+      });
+    }
+
+    // Update employee
+    const updateQuery = `
+      UPDATE infor_users
+      SET full_name = $1,
+          phone_number = $2,
+          card_id = $3,
+          email = $4,
+          date_of_birth = $5,
+          gender = $6,
+          position = $7,
+          department = $8,
+          specialty = $9,
+          permanent_address = $10,
+          current_address = $11,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE employee_id = $12
+      RETURNING infor_users_id, full_name, employee_id, phone_number, card_id,
+                email, date_of_birth, gender, position, department, specialty,
+                permanent_address, current_address, role_user, updated_at
+    `;
+
+    const result = await db.query(updateQuery, [
+      full_name,
+      phone_number,
+      card_id,
+      email || null,
+      date_of_birth || null,
+      gender,
+      position || null,
+      department || null,
+      specialty || null,
+      permanent_address || null,
+      current_address || null,
+      employee_id
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      message: "Cập nhật nhân viên thành công!",
+      data: result.rows[0]
+    });
+
+  } catch (err) {
+    console.error("Update employee error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Lỗi server: " + err.message
+    });
+  }
+};
+
+/*---------
+ DELETE EMPLOYEE
+---------*/
+export const deleteEmployee = async (req, res) => {
+  const { employee_id } = req.params;
+
+  try {
+    const deleteQuery = `
+      DELETE FROM infor_users
+      WHERE employee_id = $1 AND role_user = 'employee'
+      RETURNING full_name, employee_id
+    `;
+
+    const result = await db.query(deleteQuery, [employee_id]);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy nhân viên hoặc không thể xóa!"
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Đã xóa nhân viên ${result.rows[0].full_name} thành công!`
+    });
+
+  } catch (err) {
+    console.error("Delete employee error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Lỗi server: " + err.message
+    });
+  }
+};
+
+/*---------
+ DELETE USER
+---------*/
+export const deleteUser = async (req, res) => {
+  const { user_id } = req.params;
+
+  try {
+    const deleteQuery = `
+      DELETE FROM infor_users
+      WHERE infor_users_id = $1 AND role_user = 'users'
+      RETURNING full_name, infor_users_id
+    `;
+
+    const result = await db.query(deleteQuery, [user_id]);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy người dùng hoặc không thể xóa!"
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Đã xóa người dùng ${result.rows[0].full_name} thành công!`
+    });
+
+  } catch (err) {
+    console.error("Delete user error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Lỗi server: " + err.message
+    });
+  }
+};
