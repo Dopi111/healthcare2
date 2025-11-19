@@ -21,9 +21,9 @@ const Login_E = () => {
                 console.error('Error loading demo accounts:', error);
                 // Set default demo accounts if API fails
                 setDemoAccounts([
-                    { name: 'Admin', employeeid: 'admin', password: 'admin123' },
-                    { name: 'Bác sĩ Nguyễn Văn A', employeeid: 'doctor01', password: 'doctor123' },
-                    { name: 'Y tá Trần Thị B', employeeid: 'nurse01', password: 'nurse123' }
+                    { name: 'Admin', employee_id: 'admin', password: 'admin123' },
+                    { name: 'Bác sĩ Nguyễn Văn A', employee_id: 'doctor01', password: 'doctor123' },
+                    { name: 'Y tá Trần Thị B', employee_id: 'nurse01', password: 'nurse123' }
                 ]);
             }
         };
@@ -44,7 +44,7 @@ const Login_E = () => {
 
                 // Store auth data in localStorage
                 localStorage.setItem('token', 'static-token-' + Date.now());
-                localStorage.setItem('employeeId', account.employeeid || account.employeeId);
+                localStorage.setItem('employeeId', account.employee_id);
                 localStorage.setItem('employeeName', account.name);
                 localStorage.setItem('department', account.department || '');
                 localStorage.setItem('role', account.role);
@@ -167,7 +167,7 @@ const Login_E = () => {
                         <div className="space-y-1 text-xs text-[var(--color-admin-text-light-secondary)]">
                             {demoAccounts.map((acc, idx) => (
                                 <p key={idx}>
-                                    • {acc.name}: <code className="bg-white px-2 py-0.5 rounded">{acc.employeeid || acc.employeeId}</code> / <code className="bg-white px-2 py-0.5 rounded">{acc.password}</code>
+                                    • {acc.name}: <code className="bg-white px-2 py-0.5 rounded">{acc.employee_id}</code> / <code className="bg-white px-2 py-0.5 rounded">{acc.password}</code>
                                 </p>
                             ))}
                         </div>

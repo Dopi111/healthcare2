@@ -17,7 +17,7 @@ class AccountService {
     static async getAccountByEmployeeId(employeeId) {
         try {
             const accounts = await this.getAllAccounts();
-            return accounts.find(acc => acc.employeeid === employeeId.toLowerCase());
+            return accounts.find(acc => acc.employee_id === employeeId);
         } catch (error) {
             console.error('Error fetching account by employeeId:', error);
             throw error;

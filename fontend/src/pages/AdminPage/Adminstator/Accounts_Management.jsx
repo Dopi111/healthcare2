@@ -49,7 +49,7 @@ const Accounts_Management = () => {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(acc =>
         acc.name?.toLowerCase().includes(query) ||
-        (acc.employeeid || acc.employeeId)?.toLowerCase().includes(query) ||
+        acc.employee_id?.toLowerCase().includes(query) ||
         acc.email?.toLowerCase().includes(query) ||
         acc.phone?.toLowerCase().includes(query)
       );
@@ -98,7 +98,7 @@ const Accounts_Management = () => {
   const handleEdit = (account) => {
     setEditingAccount(account);
     setFormData({
-      employeeId: account.employeeid || account.employeeId,
+      employeeId: account.employee_id,
       password: account.password || '',
       name: account.name,
       department: account.department,
