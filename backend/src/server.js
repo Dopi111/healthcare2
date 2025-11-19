@@ -58,6 +58,7 @@ const ensureDefaultAdmin = async () => {
   const phone_number = '0000000000'; //tránh null
   const card_id = '000000000000'; // Card ID mặc định cho admin (12 số)
   const role_user = 'employee'; // Admin là employee
+  const employee_id_str = '0000000001'; // Employee ID mặc định cho admin (10 số)
 
   try {
     //Kiểm tra xem có admin nào chưa
@@ -73,10 +74,10 @@ const ensureDefaultAdmin = async () => {
     if (authCheck.rowCount === 0 && userCheck.rowCount === 0) {
         //Tạo user
       const userResult = await pool.query(
-        `INSERT INTO infor_users (phone_number, full_name, card_id, role_user)
-         VALUES ($1, $2, $3, $4)
+        `INSERT INTO infor_users (phone_number, full_name, card_id, role_user, employee_id)
+         VALUES ($1, $2, $3, $4, $5)
          RETURNING infor_users_id`,
-        [phone_number, full_name, card_id, role_user]
+        [phone_number, full_name, card_id, role_user, employee_id_str]
       );
       const infor_users_id = userResult.rows[0].infor_users_id;
 
@@ -87,17 +88,17 @@ const ensureDefaultAdmin = async () => {
          RETURNING infor_employee_id`,
         [infor_users_id, department_id]
       );
-      const employee_id = employeeResult.rows[0].infor_employee_id;
+      const infor_employee_id = employeeResult.rows[0].infor_employee_id;
 
       //Tạo auth
       const hashed = await bcrypt.hash(adminPassword, 10);
       await pool.query(
         `INSERT INTO infor_auth_employee (employee_id, password_employee, position)
          VALUES ($1, $2, $3)`,
-        [employee_id, hashed, position]
+        [employee_id_str, hashed, position]
       );
 
-      console.log(`✅ Default admin created successfully. Employee ID: ${employee_id}`);
+      console.log(`✅ Default admin created successfully. Employee ID: ${employee_id_str}`);
     } else {
         console.log('ℹ️ Default admin already exists.');
     }
