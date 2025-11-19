@@ -359,9 +359,27 @@ INSERT INTO accounts (employee_id, password, name, department, position, role, p
 ('reception01', '$2b$10$HO7fr1svajBaKyfYvBeyiO1MYpd1wuB9Equjw8n2ZGcfFk87QQs26', 'Lễ tân Lê Văn C', 'Phòng Hành chính', 'Lễ tân', 'receptionist', '0000000004', 'reception01@healthcare.com'),
 ('accountant01', '$2b$10$C/0g1a7iB9/G5moIi5QCc.KLdcuDPZcMkctqEakHOQTKbtwrJu2wa', 'Kế toán Phạm Thị D', 'Phòng Hành chính', 'Kế toán', 'accountant', '0000000005', 'accountant01@healthcare.com');
 
+-- Insert 5 infor_users (cần cho /api/employee endpoint)
+INSERT INTO infor_users (employee_id, phone_number, card_id, password, full_name, date_of_birth, gender, email, position, department, role_user) VALUES
+('admin', '0000000001', '000000000001', '$2b$10$.e0Ee48ieiUXPIci6nh7TuQtUBY0xxeznREJw0BKR55/Ajo0wr3jK', 'Administrator', '1980-01-01', 'Nam', 'admin@healthcare.com', 'Giám đốc', 'Phòng Hành chính', 'employee'),
+('doctor01', '0000000002', '000000000002', '$2b$10$0O.kXIoxPVhJfgwr.Lmeceh10LCa0j/P013UNrtdTh4K329mmGhUK', 'Bác sĩ Nguyễn Văn A', '1985-05-15', 'Nam', 'doctor01@healthcare.com', 'Bác sĩ', 'Khoa Nội', 'employee'),
+('nurse01', '0000000003', '000000000003', '$2b$10$/n7pXV3MYC/rBPs0VSrRJO.ZiZ/igg1OViFA0WhjyyGRQfzsN102O', 'Y tá Trần Thị B', '1990-08-20', 'Nữ', 'nurse01@healthcare.com', 'Y tá', 'Khoa Nội', 'employee'),
+('reception01', '0000000004', '000000000004', '$2b$10$HO7fr1svajBaKyfYvBeyiO1MYpd1wuB9Equjw8n2ZGcfFk87QQs26', 'Lễ tân Lê Văn C', '1992-03-10', 'Nam', 'reception01@healthcare.com', 'Lễ tân', 'Phòng Hành chính', 'employee'),
+('accountant01', '0000000005', '000000000005', '$2b$10$C/0g1a7iB9/G5moIi5QCc.KLdcuDPZcMkctqEakHOQTKbtwrJu2wa', 'Kế toán Phạm Thị D', '1988-11-25', 'Nữ', 'accountant01@healthcare.com', 'Kế toán', 'Phòng Hành chính', 'employee');
+
+-- Insert 5 infor_employee (link với infor_users qua infor_users_id)
+-- position_id: 1=Giám đốc, 5=Bác sĩ, 6=Y tá, 10=Lễ tân, 9=Kế toán
+-- department_id: 1=Phòng Hành chính, 2=Khoa Nội
+INSERT INTO infor_employee (infor_users_id, position_id, department_id, business, started_date, salary, coefficient, status_employee) VALUES
+(1, 1, 1, 'Quản lý điều hành', '2020-01-01', 30000000, 4.0, 'active'),
+(2, 5, 2, 'Khám và điều trị bệnh nhân', '2021-03-15', 25000000, 3.5, 'active'),
+(3, 6, 2, 'Chăm sóc bệnh nhân', '2021-06-01', 15000000, 2.5, 'active'),
+(4, 10, 1, 'Tiếp nhận bệnh nhân', '2021-09-01', 12000000, 2.0, 'active'),
+(5, 9, 1, 'Quản lý tài chính', '2021-01-15', 18000000, 2.8, 'active');
+
 DO $$
 BEGIN
-    RAISE NOTICE '✅ Đã thêm dữ liệu mẫu';
+    RAISE NOTICE '✅ Đã thêm dữ liệu mẫu (accounts, infor_users, infor_employee)';
     RAISE NOTICE '';
 END $$;
 
