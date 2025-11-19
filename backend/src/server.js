@@ -8,14 +8,7 @@ import bcrypt from 'bcryptjs';
 // Import Swagger
 import { swaggerUi, swaggerSpec } from './swagger.js';
 
-// Import new API routes
-import laboratoryRoutes from './routes/laboratoryRoutes.js';
-import fundRoutes from './routes/fundRoutes.js';
-import revenueRoutes from './routes/revenueRoutes.js';
-import insuranceRoutes from './routes/insuranceRoutes.js';
-import expenseRoutes from './routes/expenseRoutes.js';
-import patientRoutes from './routes/patientRoutes.js';
-import scheduleRoutes from './routes/scheduleRoutes.js';
+// Import core routes
 import accountRoutes from './routes/accountRoutes.js';
 import departmentRoutes from './routes/departmentRoutes.js';
 import positionRoutes from './routes/positionRoutes.js';
@@ -25,7 +18,7 @@ import userProfileRoutes from './routes/userProfileRoutes.js';
 import appointmentsRoutes from './routes/appointmentsRoutes.js';
 import labResultsRoutes from './routes/labResultsRoutes.js';
 
-// Import new database-backed routes (replacing localStorage)
+// Import database-backed routes (main API)
 import patientsNewRoutes from './routes/patientsNewRoutes.js';
 import expensesNewRoutes from './routes/expensesNewRoutes.js';
 import fundsNewRoutes from './routes/fundsNewRoutes.js';
@@ -47,29 +40,22 @@ app.use(express.json())
 // Swagger UI Documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-// Existing routes
-app.use(("/api/employee"), employeesRouters);
+// Core routes
+app.use('/api/employee', employeesRouters);
 app.use('/api/department', departmentRoutes);
 app.use('/api/position', positionRoutes);
-app.use('/api/patients', patientsRoutes);
-
-// New REST API routes
-app.use('/api/laboratory', laboratoryRoutes);
-app.use('/api/fund', fundRoutes);
-app.use('/api/revenue', revenueRoutes);
-app.use('/api/insurance', insuranceRoutes);
-app.use('/api/expense', expenseRoutes);
-app.use('/api/patient', patientRoutes);
-app.use('/api/schedule', scheduleRoutes);
 app.use('/api/account', accountRoutes);
 
-// User API routes
+// User routes
+app.use('/api/patients', patientsRoutes);  // User info only (from infor_users)
 app.use('/api/user-auth', userAuthRoutes);
 app.use('/api/user-profile', userProfileRoutes);
+
+// Medical routes
 app.use('/api/appointments', appointmentsRoutes);
 app.use('/api/lab-results', labResultsRoutes);
 
-// New database-backed API routes (replacing localStorage)
+// Medical records & operations (main database-backed API)
 app.use('/api/patients-new', patientsNewRoutes);
 app.use('/api/expenses-new', expensesNewRoutes);
 app.use('/api/funds-new', fundsNewRoutes);
