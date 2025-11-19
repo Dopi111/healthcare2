@@ -140,12 +140,13 @@ export const loginEmployee = async (req, res) => {
  GET EMPLOYEE BY ID
 ---------*/
 export const getEmployeeById = async (req, res) => {
-  const { employee_id } = req.params; // <-- lấy id từ URL
+  const { employee_id } = req.params; // <-- lấy employee_id từ URL (có thể là string như "admin2024")
 
   try {
     const q = `
-      SELECT 
+      SELECT
         e.infor_employee_id,
+        u.employee_id,
         u.full_name,
         u.card_id,
         u.phone_number,
@@ -165,7 +166,7 @@ export const getEmployeeById = async (req, res) => {
       JOIN infor_users u ON e.infor_users_id = u.infor_users_id
       LEFT JOIN list_position p ON e.position_id = p.position_id
       LEFT JOIN list_department d ON e.department_id = d.department_id
-      WHERE e.infor_employee_id = $1
+      WHERE u.employee_id = $1
       LIMIT 1;
     `;
 
