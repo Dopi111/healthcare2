@@ -2,16 +2,20 @@
 
 ## ⚡ Quick Migration (3 Steps)
 
-### **Bước 1: Chạy Master Migration**
+### **Bước 1: Chạy Clean Migration** ⭐ RECOMMENDED
 
 ```bash
 # Option A: psql command (Recommended - Fastest)
-psql -U postgres -d healthcare_db -f backend/src/migrations/000_master_migration.sql
+psql -U postgres -d healthcare_db -f backend/src/migrations/000_clean_migration.sql
 
 # Option B: psql interactive
 psql -U postgres -d healthcare_db
-\i backend/src/migrations/000_master_migration.sql
+\i backend/src/migrations/000_clean_migration.sql
 ```
+
+**Lưu ý**:
+- Sử dụng `000_clean_migration.sql` (KHÔNG có sample data, tránh lỗi foreign key)
+- Nếu cần sample data, chạy riêng sau khi migration xong
 
 ### **Bước 2: Verify Database**
 
@@ -41,9 +45,22 @@ npm run dev
 
 ---
 
-## 📋 Thứ Tự Migration Files
+## 📋 Migration Scripts Available
 
-Master script `000_master_migration.sql` sẽ tự động chạy:
+### **000_clean_migration.sql** ⭐ RECOMMENDED
+- Clean schema only, NO sample data
+- Tránh lỗi foreign key constraint
+- Chỉ tạo 16 tables + essential data (departments, positions, accounts)
+- **Use this for production!**
+
+### **000_master_migration.sql**
+- Includes schema + may include sample data
+- Có thể gặp lỗi nếu sample data không hợp lệ
+- Use only if you need full sample data
+
+**Recommended**: Luôn dùng `000_clean_migration.sql`
+
+Script clean migration sẽ tự động tạo:
 
 1. ✅ **001** - Core tables (users, employees, departments, positions)
 2. ✅ **003** - User medical info
@@ -127,16 +144,22 @@ WHERE employee_id = 'admin' AND password = 'admin123';
 ## 🔥 Troubleshooting
 
 ### Problem: "relation does not exist"
-**Solution**: Chạy master migration
+**Solution**: Chạy clean migration
 ```bash
-psql -U postgres -d healthcare_db -f backend/src/migrations/000_master_migration.sql
+psql -U postgres -d healthcare_db -f backend/src/migrations/000_clean_migration.sql
 ```
 
-### Problem: "column employeeid does not exist"
-**Solution**: Bảng cũ tồn tại với naming sai. Drop và chạy lại:
-```sql
-DROP TABLE IF EXISTS accounts CASCADE;
-\i backend/src/migrations/000_master_migration.sql
+### Problem: "column employeeid does not exist" hoặc "foreign key constraint violation"
+**Solution**: Bảng cũ tồn tại với naming sai hoặc data không hợp lệ. Drop và chạy lại:
+```bash
+# Drop everything và chạy clean migration
+psql -U postgres -d healthcare_db -f backend/src/migrations/000_clean_migration.sql
+```
+
+### Problem: "Error ensuring default admin: foreign key violation"
+**Solution**: Đây là lỗi từ sample data cũ. Chạy clean migration:
+```bash
+psql -U postgres -d healthcare_db -f backend/src/migrations/000_clean_migration.sql
 ```
 
 ### Problem: "database does not exist"
