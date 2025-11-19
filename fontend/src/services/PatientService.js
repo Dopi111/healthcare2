@@ -1,184 +1,159 @@
-// PatientService - Quản lý bệnh nhân
+/**
+ * Patient Service - PostgreSQL API
+ * Quản lý bệnh nhân thông qua PostgreSQL database
+ */
 
-const STORAGE_KEY = 'healthcare_patients';
-
-// Dữ liệu mẫu
-const defaultPatients = [
-    {
-        id: '1',
-        patientId: 'BN001',
-        fullName: 'Nguyễn Văn An',
-        dateOfBirth: '1990-05-15',
-        gender: 'Nam',
-        phone: '0912345678',
-        address: '123 Nguyễn Huệ, Q1, TP.HCM',
-        idCard: '079090001234',
-        doctorInCharge: 'Bác sĩ Nguyễn Văn A',
-        visitDate: '2024-11-10',
-        diagnosis: 'Viêm họng cấp',
-        status: 'Đang điều trị',
-        medicalHistory: 'Không có bệnh nền',
-        allergies: 'Không',
-        createdAt: new Date().toISOString()
-    },
-    {
-        id: '2',
-        patientId: 'BN002',
-        fullName: 'Trần Thị Bình',
-        dateOfBirth: '1985-08-20',
-        gender: 'Nữ',
-        phone: '0987654321',
-        address: '456 Lê Lợi, Q3, TP.HCM',
-        idCard: '079085002345',
-        doctorInCharge: 'Bác sĩ Nguyễn Văn A',
-        visitDate: '2024-11-12',
-        diagnosis: 'Cao huyết áp',
-        status: 'Tái khám',
-        medicalHistory: 'Đái tháo đường type 2',
-        allergies: 'Penicillin',
-        createdAt: new Date().toISOString()
-    },
-    {
-        id: '3',
-        patientId: 'BN003',
-        fullName: 'Lê Văn Cường',
-        dateOfBirth: '1995-03-10',
-        gender: 'Nam',
-        phone: '0901234567',
-        address: '789 Hai Bà Trưng, Q1, TP.HCM',
-        idCard: '079095003456',
-        doctorInCharge: 'Bác sĩ Nguyễn Văn A',
-        visitDate: '2024-11-14',
-        diagnosis: 'Viêm dạ dày',
-        status: 'Hoàn thành',
-        medicalHistory: 'Không',
-        allergies: 'Không',
-        createdAt: new Date().toISOString()
-    }
-];
+import api from './api.js';
 
 class PatientService {
-    static initializePatients() {
-        const existing = localStorage.getItem(STORAGE_KEY);
-        if (!existing) {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultPatients));
-            return defaultPatients;
-        }
-        return JSON.parse(existing);
+  /**
+   * Lấy tất cả bệnh nhân
+   */
+  static async getAllPatients() {
+    try {
+      const response = await api.get('/patients-new');
+      return response.data.data;
+    } catch (error) {
+      console.error('Error getting all patients:', error);
+      throw error;
     }
+  }
 
-    static getAllPatients() {
-        const patients = localStorage.getItem(STORAGE_KEY);
-        if (!patients) {
-            return this.initializePatients();
-        }
-        return JSON.parse(patients);
+  /**
+   * Lấy bệnh nhân theo ID
+   */
+  static async getPatientById(id) {
+    try {
+      const response = await api.get(`/patients-new/${id}`);
+      return response.data.data;
+    } catch (error) {
+      console.error('Error getting patient by ID:', error);
+      throw error;
     }
+  }
 
-    static getPatientById(id) {
-        const patients = this.getAllPatients();
-        return patients.find(p => p.id === id);
+  /**
+   * Lấy bệnh nhân theo mã bệnh nhân
+   */
+  static async getPatientByPatientId(patientId) {
+    try {
+      const response = await api.get(`/patients-new/code/${patientId}`);
+      return response.data.data;
+    } catch (error) {
+      console.error('Error getting patient by code:', error);
+      throw error;
     }
+  }
 
-    static getPatientByPatientId(patientId) {
-        const patients = this.getAllPatients();
-        return patients.find(p => p.patientId === patientId);
+  /**
+   * Thêm bệnh nhân mới
+   */
+  static async addPatient(patientData) {
+    try {
+      const response = await api.post('/patients-new', patientData);
+      return response.data.data;
+    } catch (error) {
+      console.error('Error adding patient:', error);
+      throw error;
     }
+  }
 
-    static addPatient(patientData) {
-        const patients = this.getAllPatients();
-
-        // Kiểm tra trùng patientId
-        if (patients.some(p => p.patientId === patientData.patientId)) {
-            throw new Error('Mã bệnh nhân đã tồn tại!');
-        }
-
-        // Tạo ID mới
-        const maxId = patients.length > 0
-            ? Math.max(...patients.map(p => parseInt(p.id) || 0))
-            : 0;
-
-        const newPatient = {
-            ...patientData,
-            id: (maxId + 1).toString(),
-            createdAt: new Date().toISOString()
-        };
-
-        patients.push(newPatient);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(patients));
-        return newPatient;
+  /**
+   * Cập nhật bệnh nhân
+   */
+  static async updatePatient(id, patientData) {
+    try {
+      const response = await api.put(`/patients-new/${id}`, patientData);
+      return response.data.data;
+    } catch (error) {
+      console.error('Error updating patient:', error);
+      throw error;
     }
+  }
 
-    static updatePatient(id, patientData) {
-        const patients = this.getAllPatients();
-        const index = patients.findIndex(p => p.id === id);
-
-        if (index === -1) {
-            throw new Error('Không tìm thấy bệnh nhân!');
-        }
-
-        // Kiểm tra trùng patientId (trừ chính nó)
-        if (patientData.patientId &&
-            patients.some(p => p.id !== id && p.patientId === patientData.patientId)) {
-            throw new Error('Mã bệnh nhân đã tồn tại!');
-        }
-
-        patients[index] = {
-            ...patients[index],
-            ...patientData,
-            id: id,
-            updatedAt: new Date().toISOString()
-        };
-
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(patients));
-        return patients[index];
+  /**
+   * Xóa bệnh nhân
+   */
+  static async deletePatient(id) {
+    try {
+      const response = await api.delete(`/patients-new/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error deleting patient:', error);
+      throw error;
     }
+  }
 
-    static deletePatient(id) {
-        const patients = this.getAllPatients();
-        const filtered = patients.filter(p => p.id !== id);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+  /**
+   * Tìm kiếm bệnh nhân
+   */
+  static async searchPatients(query) {
+    try {
+      const response = await api.get(`/patients-new/search?query=${query}`);
+      return response.data.data;
+    } catch (error) {
+      console.error('Error searching patients:', error);
+      throw error;
     }
+  }
 
-    static searchPatients(query) {
-        const patients = this.getAllPatients();
-        const q = query.toLowerCase();
-        return patients.filter(p =>
-            p.patientId.toLowerCase().includes(q) ||
-            p.fullName.toLowerCase().includes(q) ||
-            p.phone.toLowerCase().includes(q) ||
-            p.diagnosis?.toLowerCase().includes(q)
-        );
+  /**
+   * Lấy bệnh nhân theo trạng thái
+   */
+  static async getPatientsByStatus(status) {
+    try {
+      const response = await api.get(`/patients-new/status/${status}`);
+      return response.data.data;
+    } catch (error) {
+      console.error('Error getting patients by status:', error);
+      throw error;
     }
+  }
 
-    static getPatientsByDoctor(doctorName) {
-        const patients = this.getAllPatients();
-        return patients.filter(p => p.doctorInCharge === doctorName);
+  /**
+   * Lấy bệnh nhân theo bác sĩ
+   */
+  static async getPatientsByDoctor(doctorName) {
+    try {
+      const response = await api.get(`/patients-new/doctor/${encodeURIComponent(doctorName)}`);
+      return response.data.data;
+    } catch (error) {
+      console.error('Error getting patients by doctor:', error);
+      throw error;
     }
+  }
 
-    static getPatientsByStatus(status) {
-        const patients = this.getAllPatients();
-        return patients.filter(p => p.status === status);
+  /**
+   * Export patients to JSON (for backup)
+   */
+  static async exportPatients() {
+    try {
+      const patients = await this.getAllPatients();
+      const dataStr = JSON.stringify(patients, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(dataBlob);
+
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `patients_${new Date().toISOString()}.json`;
+      link.click();
+
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error exporting patients:', error);
+      throw error;
     }
+  }
 
-    static resetToDefault() {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultPatients));
-        return defaultPatients;
-    }
+  // Compatibility methods (để không break existing code)
+  static initializePatients() {
+    return this.getAllPatients();
+  }
 
-    static exportPatients() {
-        const patients = this.getAllPatients();
-        const dataStr = JSON.stringify(patients, null, 2);
-        const dataBlob = new Blob([dataStr], { type: 'application/json' });
-        const url = URL.createObjectURL(dataBlob);
-
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `patients_${new Date().toISOString()}.json`;
-        link.click();
-
-        URL.revokeObjectURL(url);
-    }
+  static resetToDefault() {
+    console.warn('resetToDefault() is not supported with PostgreSQL backend');
+    return [];
+  }
 }
 
 export default PatientService;
