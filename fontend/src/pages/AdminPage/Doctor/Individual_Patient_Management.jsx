@@ -30,18 +30,21 @@ const Individual_Patient_Management = () => {
     loadPatients();
   }, []);
 
-  const loadPatients = () => {
+  const loadPatients = async () => {
     try {
-      const data = PatientService.getAllPatients();
-      setPatients(data);
-      setFilteredPatients(data);
+      const data = await PatientService.getAllPatients();
+      setPatients(data || []);
+      setFilteredPatients(data || []);
     } catch (error) {
+      console.error('Error loading patients:', error);
+      setPatients([]);
+      setFilteredPatients([]);
       showMessage('error', 'Không thể tải danh sách bệnh nhân!');
     }
   };
 
   useEffect(() => {
-    let filtered = [...patients];
+    let filtered = [...(patients || [])];
 
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -91,20 +94,21 @@ const Individual_Patient_Management = () => {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (patient) => {
+  const handleDelete = async (patient) => {
     if (!window.confirm(`Bạn có chắc muốn xóa bệnh nhân "${patient.fullName}"?`)) {
       return;
     }
     try {
-      PatientService.deletePatient(patient.id);
-      loadPatients();
+      await PatientService.deletePatient(patient.id);
+      await loadPatients();
       showMessage('success', 'Xóa bệnh nhân thành công!');
     } catch (error) {
+      console.error('Error deleting patient:', error);
       showMessage('error', error.message);
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.patientId || !formData.fullName || !formData.dateOfBirth) {
       showMessage('error', 'Vui lòng điền đầy đủ thông tin bắt buộc!');
@@ -113,15 +117,16 @@ const Individual_Patient_Management = () => {
 
     try {
       if (editingPatient) {
-        PatientService.updatePatient(editingPatient.id, formData);
+        await PatientService.updatePatient(editingPatient.id, formData);
         showMessage('success', 'Cập nhật thông tin bệnh nhân thành công!');
       } else {
-        PatientService.addPatient(formData);
+        await PatientService.addPatient(formData);
         showMessage('success', 'Thêm bệnh nhân mới thành công!');
       }
       setIsModalOpen(false);
-      loadPatients();
+      await loadPatients();
     } catch (error) {
+      console.error('Error submitting patient:', error);
       showMessage('error', error.message);
     }
   };

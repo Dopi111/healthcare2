@@ -20,17 +20,29 @@ const options = {
       }
     ],
     tags: [
-      { name: 'Laboratory', description: 'Quản lý xét nghiệm' },
-      { name: 'Fund', description: 'Quản lý quỹ' },
-      { name: 'Revenue', description: 'Doanh thu khám chữa bệnh' },
-      { name: 'Insurance', description: 'Thanh toán bảo hiểm' },
-      { name: 'Expense', description: 'Chi phí hoạt động' },
-      { name: 'Patient', description: 'Quản lý bệnh nhân (cũ)' },
-      { name: 'Patients', description: 'Quản lý bệnh nhân (Dashboard)' },
-      { name: 'Schedule', description: 'Lịch làm việc' },
+      // Core Management
+      { name: 'Employees', description: 'Quản lý nhân viên' },
       { name: 'Account', description: 'Quản lý tài khoản' },
       { name: 'Department', description: 'Danh sách phòng ban' },
-      { name: 'Position', description: 'Danh sách chức vụ' }
+      { name: 'Position', description: 'Danh sách chức vụ' },
+
+      // User Management
+      { name: 'User Auth', description: 'Đăng nhập/Đăng ký người dùng' },
+      { name: 'User Profile', description: 'Hồ sơ người dùng' },
+      { name: 'Patients', description: 'Thông tin bệnh nhân (từ infor_users)' },
+
+      // Medical Management
+      { name: 'Appointments', description: 'Quản lý lịch hẹn' },
+      { name: 'Lab Results', description: 'Kết quả xét nghiệm (user)' },
+
+      // Database-backed APIs (PostgreSQL)
+      { name: 'Patients New', description: 'Quản lý hồ sơ bệnh nhân (PostgreSQL)' },
+      { name: 'Laboratory Tests', description: 'Quản lý xét nghiệm (PostgreSQL)' },
+      { name: 'Test Results New', description: 'Kết quả xét nghiệm (PostgreSQL)' },
+      { name: 'Expenses New', description: 'Quản lý chi phí (PostgreSQL)' },
+      { name: 'Funds New', description: 'Quản lý quỹ tài chính (PostgreSQL)' },
+      { name: 'Revenue New', description: 'Quản lý doanh thu (PostgreSQL)' },
+      { name: 'Insurance New', description: 'Quản lý bảo hiểm (PostgreSQL)' }
     ],
     components: {
       schemas: {

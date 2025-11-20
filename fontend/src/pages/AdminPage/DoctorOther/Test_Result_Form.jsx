@@ -15,18 +15,21 @@ const Test_Result_Form = () => {
     loadTests();
   }, []);
 
-  const loadTests = () => {
+  const loadTests = async () => {
     try {
-      const data = LaboratoryService.getAllTests();
-      setTests(data);
-      setFilteredTests(data);
+      const data = await LaboratoryService.getAllTests();
+      setTests(data || []);
+      setFilteredTests(data || []);
     } catch (error) {
+      console.error('Error loading tests:', error);
+      setTests([]);
+      setFilteredTests([]);
       showMessage('error', 'Không thể tải danh sách xét nghiệm!');
     }
   };
 
   useEffect(() => {
-    let filtered = [...tests];
+    let filtered = [...(tests || [])];
 
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -75,7 +78,7 @@ const Test_Result_Form = () => {
     setResultFields(newFields);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     // Convert result fields to object format
@@ -99,29 +102,31 @@ const Test_Result_Form = () => {
     };
 
     try {
-      LaboratoryService.updateTest(selectedTest.id, updateData);
-      loadTests();
+      await LaboratoryService.updateTest(selectedTest.id, updateData);
+      await loadTests();
       setIsModalOpen(false);
       showMessage('success', 'Cập nhật kết quả xét nghiệm thành công!');
     } catch (error) {
+      console.error('Error updating test:', error);
       showMessage('error', error.message);
     }
   };
 
-  const handleVerify = () => {
+  const handleVerify = async () => {
     const verifiedBy = prompt('Nhập tên bác sĩ kiểm định:');
     if (verifiedBy) {
       try {
-        LaboratoryService.updateTest(selectedTest.id, {
+        await LaboratoryService.updateTest(selectedTest.id, {
           verifiedBy,
           status: 'Hoàn thành',
           completedDate: new Date().toISOString().split('T')[0],
           completedTime: new Date().toTimeString().slice(0, 5)
         });
-        loadTests();
+        await loadTests();
         setIsModalOpen(false);
         showMessage('success', 'Đã xác nhận kết quả xét nghiệm!');
       } catch (error) {
+        console.error('Error verifying test:', error);
         showMessage('error', error.message);
       }
     }

@@ -1,64 +1,66 @@
 import React, { useEffect, useState } from 'react';
 import { DataTable, Badge } from '../../../components/admin';
-import FundService from '../../../services/FundService';
+import ExpenseService from '../../../services/ExpenseService';
 
-const Fund_Management = () => {
-  const [funds, setFunds] = useState([]);
-  const [filteredFunds, setFilteredFunds] = useState([]);
+const Expense_Report = () => {
+  const [expenses, setExpenses] = useState([]);
+  const [filteredExpenses, setFilteredExpenses] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterType, setFilterType] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingFund, setEditingFund] = useState(null);
+  const [editingExpense, setEditingExpense] = useState(null);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [stats, setStats] = useState(null);
   const [showCharts, setShowCharts] = useState(true);
   const [formData, setFormData] = useState({
-    transactionId: '',
+    expense_code: '',
     date: new Date().toISOString().split('T')[0],
-    type: 'Thu',
-    category: 'Khám bệnh',
+    category: '',
+    department: '',
     amount: 0,
     description: '',
-    createdBy: ''
+    approved_by: '',
+    status: 'Chờ duyệt'
   });
 
   useEffect(() => {
-    loadFunds();
+    loadExpenses();
   }, []);
 
-  const loadFunds = async () => {
+  const loadExpenses = async () => {
     try {
-      const data = await FundService.getAllFunds();
-      setFunds(data || []);
-      setFilteredFunds(data || []);
-      const statistics = await FundService.getStatistics();
+      const data = await ExpenseService.getAllExpenses();
+      setExpenses(data || []);
+      setFilteredExpenses(data || []);
+      const statistics = await ExpenseService.getStatistics();
       setStats(statistics);
     } catch (error) {
-      console.error('Error loading funds:', error);
-      setFunds([]);
-      setFilteredFunds([]);
-      showMessage('error', 'Không thể tải danh sách quỹ!');
+      console.error('Error loading expenses:', error);
+      setExpenses([]);
+      setFilteredExpenses([]);
+      showMessage('error', 'Không thể tải danh sách chi phí!');
     }
   };
 
   useEffect(() => {
-    let filtered = [...(funds || [])];
+    let filtered = [...(expenses || [])];
 
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(f =>
-        f.transactionId.toLowerCase().includes(query) ||
-        f.category.toLowerCase().includes(query) ||
-        f.description.toLowerCase().includes(query)
+      filtered = filtered.filter(e =>
+        e.expense_code?.toLowerCase().includes(query) ||
+        e.category?.toLowerCase().includes(query) ||
+        e.department?.toLowerCase().includes(query) ||
+        e.description?.toLowerCase().includes(query)
       );
     }
 
-    if (filterType) {
-      filtered = filtered.filter(f => f.type === filterType);
+    if (filterStatus) {
+      filtered = filtered.filter(e => e.status === filterStatus);
     }
 
-    setFilteredFunds(filtered);
-  }, [searchQuery, filterType, funds]);
+    setFilteredExpenses(filtered);
+  }, [searchQuery, filterStatus, expenses]);
 
   const showMessage = (type, text) => {
     setMessage({ type, text });
@@ -66,59 +68,61 @@ const Fund_Management = () => {
   };
 
   const handleAdd = () => {
-    setEditingFund(null);
+    setEditingExpense(null);
+    const autoCode = `EXP${Date.now().toString().slice(-8)}`;
     setFormData({
-      transactionId: '',
+      expense_code: autoCode,
       date: new Date().toISOString().split('T')[0],
-      type: 'Thu',
-      category: 'Khám bệnh',
+      category: '',
+      department: '',
       amount: 0,
       description: '',
-      createdBy: ''
+      approved_by: '',
+      status: 'Chờ duyệt'
     });
     setIsModalOpen(true);
   };
 
-  const handleEdit = (fund) => {
-    setEditingFund(fund);
-    setFormData(fund);
+  const handleEdit = (expense) => {
+    setEditingExpense(expense);
+    setFormData(expense);
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (fund) => {
-    if (!window.confirm(`Bạn có chắc muốn xóa giao dịch "${fund.transactionId}"?`)) {
+  const handleDelete = async (expense) => {
+    if (!window.confirm(`Bạn có chắc muốn xóa chi phí "${expense.expense_code}"?`)) {
       return;
     }
     try {
-      await FundService.deleteFund(fund.id);
-      await loadFunds();
-      showMessage('success', 'Xóa giao dịch thành công!');
+      await ExpenseService.deleteExpense(expense.id);
+      await loadExpenses();
+      showMessage('success', 'Xóa chi phí thành công!');
     } catch (error) {
-      console.error('Error deleting fund:', error);
-      showMessage('error', error.message);
+      console.error('Error deleting expense:', error);
+      showMessage('error', error.message || 'Lỗi khi xóa chi phí!');
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.transactionId || !formData.amount || formData.amount <= 0) {
+    if (!formData.expense_code || !formData.amount || formData.amount <= 0) {
       showMessage('error', 'Vui lòng điền đầy đủ thông tin!');
       return;
     }
 
     try {
-      if (editingFund) {
-        await FundService.updateFund(editingFund.id, formData);
-        showMessage('success', 'Cập nhật giao dịch thành công!');
+      if (editingExpense) {
+        await ExpenseService.updateExpense(editingExpense.id, formData);
+        showMessage('success', 'Cập nhật chi phí thành công!');
       } else {
-        await FundService.addFund(formData);
-        showMessage('success', 'Thêm giao dịch mới thành công!');
+        await ExpenseService.addExpense(formData);
+        showMessage('success', 'Thêm chi phí mới thành công!');
       }
       setIsModalOpen(false);
-      await loadFunds();
+      await loadExpenses();
     } catch (error) {
-      console.error('Error submitting fund:', error);
-      showMessage('error', error.message);
+      console.error('Error submitting expense:', error);
+      showMessage('error', error.message || 'Có lỗi xảy ra!');
     }
   };
 
@@ -128,8 +132,8 @@ const Fund_Management = () => {
 
   const columns = [
     {
-      key: 'transactionId',
-      label: 'Mã GD',
+      key: 'expense_code',
+      label: 'Mã chi phí',
       sortable: true,
       className: 'font-medium text-[var(--color-admin-text-light-primary)]'
     },
@@ -139,58 +143,75 @@ const Fund_Management = () => {
       sortable: true
     },
     {
-      key: 'type',
-      label: 'Loại',
-      render: (value) => {
-        const variants = {
-          'Thu': 'success',
-          'Chi': 'danger'
-        };
-        return <Badge variant={variants[value]}>{value}</Badge>;
-      }
-    },
-    {
       key: 'category',
       label: 'Danh mục',
       sortable: true
     },
     {
+      key: 'department',
+      label: 'Phòng ban',
+      sortable: true
+    },
+    {
       key: 'amount',
       label: 'Số tiền',
-      render: (value, row) => (
-        <span className={row.type === 'Thu' ? 'text-green-600 font-bold' : 'text-red-600 font-bold'}>
-          {row.type === 'Thu' ? '+' : '-'}{formatCurrency(value)}
+      sortable: true,
+      render: (value) => (
+        <span className="text-red-600 font-bold">
+          {formatCurrency(value || 0)}
         </span>
       )
     },
     {
-      key: 'description',
-      label: 'Mô tả'
+      key: 'status',
+      label: 'Trạng thái',
+      render: (value) => {
+        const variants = {
+          'Chờ duyệt': 'warning',
+          'Đã chi': 'success',
+          'Từ chối': 'danger'
+        };
+        return <Badge variant={variants[value] || 'default'}>{value}</Badge>;
+      }
+    },
+    {
+      key: 'approved_by',
+      label: 'Người duyệt'
     }
   ];
 
   // Prepare chart data
-  const getCategoryChartData = () => {
-    if (!stats || !stats.categoryStats) return [];
-    return Object.entries(stats.categoryStats || {}).map(([category, data]) => ({
-      category,
-      total: (data?.income || 0) + (data?.expense || 0),
-      percentage: (((data?.income || 0) + (data?.expense || 0)) / ((stats.totalIncome || 0) + (stats.totalExpense || 0) || 1) * 100).toFixed(1)
-    })).sort((a, b) => b.total - a.total);
+  const getDepartmentChartData = () => {
+    if (!expenses || expenses.length === 0) return [];
+    const deptMap = {};
+    expenses.forEach(e => {
+      const dept = e.department || 'Khác';
+      if (!deptMap[dept]) {
+        deptMap[dept] = 0;
+      }
+      deptMap[dept] += parseFloat(e.amount || 0);
+    });
+    return Object.entries(deptMap)
+      .map(([department, total]) => ({
+        department,
+        total,
+        percentage: stats ? ((total / stats.totalExpense) * 100).toFixed(1) : 0
+      }))
+      .sort((a, b) => b.total - a.total);
   };
 
-  const categoryData = getCategoryChartData();
-  const maxCategoryValue = categoryData.length > 0 ? Math.max(...categoryData.map(d => d.total)) : 1;
+  const departmentData = getDepartmentChartData();
+  const maxDeptValue = departmentData.length > 0 ? Math.max(...departmentData.map(d => d.total)) : 1;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-[var(--color-admin-text-light-primary)]">
-            Quản lý Quỹ
+            Quản lý Chi phí Hoạt động
           </h2>
           <p className="text-sm text-[var(--color-admin-text-light-secondary)] mt-1">
-            Theo dõi thu chi và quỹ tài chính
+            Theo dõi và quản lý chi phí hoạt động
           </p>
         </div>
         <div className="flex gap-2">
@@ -204,7 +225,7 @@ const Fund_Management = () => {
             {showCharts ? 'Ẩn biểu đồ' : 'Hiện biểu đồ'}
           </button>
           <button
-            onClick={() => FundService.exportFunds()}
+            onClick={() => ExpenseService.exportExpenses && ExpenseService.exportExpenses()}
             className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-[var(--color-admin-border-light)] text-[var(--color-admin-text-light-primary)] rounded-lg hover:bg-gray-50"
           >
             <span className="material-symbols-outlined text-xl">download</span>
@@ -215,7 +236,7 @@ const Fund_Management = () => {
             className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--color-admin-primary)] text-white rounded-lg hover:opacity-90"
           >
             <span className="material-symbols-outlined text-xl">add</span>
-            Thêm giao dịch
+            Thêm chi phí
           </button>
         </div>
       </div>
@@ -232,70 +253,60 @@ const Fund_Management = () => {
 
       {/* Statistics Cards */}
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-6 rounded-lg text-white shadow-lg">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-gradient-to-br from-red-500 to-red-600 p-6 rounded-lg text-white shadow-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm opacity-90">Số dư</p>
-                <p className="text-2xl font-bold mt-1">{formatCurrency(stats.balance)}</p>
+                <p className="text-sm opacity-90">Tổng chi phí</p>
+                <p className="text-2xl font-bold mt-1">{formatCurrency(stats.totalExpense || 0)}</p>
               </div>
-              <span className="material-symbols-outlined text-4xl opacity-80">account_balance</span>
+              <span className="material-symbols-outlined text-4xl opacity-80">payments</span>
             </div>
           </div>
 
           <div className="bg-gradient-to-br from-green-500 to-green-600 p-6 rounded-lg text-white shadow-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm opacity-90">Tổng thu</p>
-                <p className="text-2xl font-bold mt-1">{formatCurrency(stats.totalIncome)}</p>
+                <p className="text-sm opacity-90">Đã chi</p>
+                <p className="text-2xl font-bold mt-1">{formatCurrency(stats.paidExpense || 0)}</p>
               </div>
-              <span className="material-symbols-outlined text-4xl opacity-80">trending_up</span>
+              <span className="material-symbols-outlined text-4xl opacity-80">check_circle</span>
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-red-500 to-red-600 p-6 rounded-lg text-white shadow-lg">
+          <div className="bg-gradient-to-br from-orange-500 to-orange-600 p-6 rounded-lg text-white shadow-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm opacity-90">Tổng chi</p>
-                <p className="text-2xl font-bold mt-1">{formatCurrency(stats.totalExpense)}</p>
+                <p className="text-sm opacity-90">Chờ duyệt</p>
+                <p className="text-2xl font-bold mt-1">{formatCurrency(stats.pendingExpense || 0)}</p>
               </div>
-              <span className="material-symbols-outlined text-4xl opacity-80">trending_down</span>
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-br from-purple-500 to-purple-600 p-6 rounded-lg text-white shadow-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm opacity-90">Giao dịch</p>
-                <p className="text-2xl font-bold mt-1">{stats.transactionCount}</p>
-              </div>
-              <span className="material-symbols-outlined text-4xl opacity-80">receipt_long</span>
+              <span className="material-symbols-outlined text-4xl opacity-80">pending</span>
             </div>
           </div>
         </div>
       )}
 
       {/* Charts Section */}
-      {showCharts && stats && (
+      {showCharts && departmentData.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Category Distribution Chart */}
+          {/* Department Distribution Chart */}
           <div className="bg-white p-6 rounded-lg border border-[var(--color-admin-border-light)]">
             <h3 className="text-lg font-bold text-[var(--color-admin-text-light-primary)] mb-4">
-              Phân bố theo danh mục
+              Chi phí theo phòng ban
             </h3>
             <div className="space-y-3">
-              {categoryData.map((item, index) => (
+              {departmentData.map((item, index) => (
                 <div key={index}>
                   <div className="flex justify-between text-sm mb-1">
-                    <span className="font-medium">{item.category}</span>
+                    <span className="font-medium">{item.department}</span>
                     <span className="text-[var(--color-admin-text-light-secondary)]">
                       {formatCurrency(item.total)} ({item.percentage}%)
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
                     <div
-                      className="bg-gradient-to-r from-blue-500 to-purple-500 h-3 rounded-full transition-all duration-500"
-                      style={{ width: `${(item.total / maxCategoryValue) * 100}%` }}
+                      className="bg-gradient-to-r from-red-500 to-orange-500 h-3 rounded-full transition-all duration-500"
+                      style={{ width: `${(item.total / maxDeptValue) * 100}%` }}
                     ></div>
                   </div>
                 </div>
@@ -303,60 +314,58 @@ const Fund_Management = () => {
             </div>
           </div>
 
-          {/* Income vs Expense Comparison */}
+          {/* Status Comparison */}
           <div className="bg-white p-6 rounded-lg border border-[var(--color-admin-border-light)]">
             <h3 className="text-lg font-bold text-[var(--color-admin-text-light-primary)] mb-4">
-              So sánh thu chi
+              Trạng thái chi phí
             </h3>
             <div className="flex items-end justify-around h-64 border-l-2 border-b-2 border-gray-300 p-4">
               <div className="flex flex-col items-center gap-2 flex-1">
                 <div className="w-full flex items-end justify-center" style={{ height: '200px' }}>
                   <div
-                    className="bg-gradient-to-t from-green-500 to-green-400 rounded-t-lg transition-all duration-500 w-20 flex items-end justify-center pb-2"
-                    style={{
-                      height: `${(stats.totalIncome / Math.max(stats.totalIncome, stats.totalExpense)) * 100}%`
-                    }}
-                  >
-                    <span className="text-white text-xs font-bold writing-mode-vertical-rl transform rotate-180">
-                      Thu
-                    </span>
-                  </div>
-                </div>
-                <p className="text-sm font-medium text-green-600">{formatCurrency(stats.totalIncome)}</p>
-              </div>
-
-              <div className="flex flex-col items-center gap-2 flex-1">
-                <div className="w-full flex items-end justify-center" style={{ height: '200px' }}>
-                  <div
                     className="bg-gradient-to-t from-red-500 to-red-400 rounded-t-lg transition-all duration-500 w-20 flex items-end justify-center pb-2"
                     style={{
-                      height: `${(stats.totalExpense / Math.max(stats.totalIncome, stats.totalExpense)) * 100}%`
+                      height: `${stats?.totalExpense > 0 ? (stats.totalExpense / Math.max(stats.totalExpense, stats.paidExpense, stats.pendingExpense)) * 100 : 0}%`
                     }}
                   >
                     <span className="text-white text-xs font-bold writing-mode-vertical-rl transform rotate-180">
-                      Chi
+                      Tổng
                     </span>
                   </div>
                 </div>
-                <p className="text-sm font-medium text-red-600">{formatCurrency(stats.totalExpense)}</p>
+                <p className="text-sm font-medium text-red-600">{formatCurrency(stats?.totalExpense || 0)}</p>
               </div>
 
               <div className="flex flex-col items-center gap-2 flex-1">
                 <div className="w-full flex items-end justify-center" style={{ height: '200px' }}>
                   <div
-                    className={`bg-gradient-to-t ${stats.balance >= 0 ? 'from-blue-500 to-blue-400' : 'from-orange-500 to-orange-400'} rounded-t-lg transition-all duration-500 w-20 flex items-end justify-center pb-2`}
+                    className="bg-gradient-to-t from-green-500 to-green-400 rounded-t-lg transition-all duration-500 w-20 flex items-end justify-center pb-2"
                     style={{
-                      height: `${(Math.abs(stats.balance) / Math.max(stats.totalIncome, stats.totalExpense)) * 100}%`
+                      height: `${stats?.paidExpense > 0 ? (stats.paidExpense / Math.max(stats.totalExpense, stats.paidExpense, stats.pendingExpense)) * 100 : 0}%`
                     }}
                   >
                     <span className="text-white text-xs font-bold writing-mode-vertical-rl transform rotate-180">
-                      Lãi
+                      Đã chi
                     </span>
                   </div>
                 </div>
-                <p className={`text-sm font-medium ${stats.balance >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>
-                  {formatCurrency(stats.balance)}
-                </p>
+                <p className="text-sm font-medium text-green-600">{formatCurrency(stats?.paidExpense || 0)}</p>
+              </div>
+
+              <div className="flex flex-col items-center gap-2 flex-1">
+                <div className="w-full flex items-end justify-center" style={{ height: '200px' }}>
+                  <div
+                    className="bg-gradient-to-t from-orange-500 to-orange-400 rounded-t-lg transition-all duration-500 w-20 flex items-end justify-center pb-2"
+                    style={{
+                      height: `${stats?.pendingExpense > 0 ? (stats.pendingExpense / Math.max(stats.totalExpense, stats.paidExpense, stats.pendingExpense)) * 100 : 0}%`
+                    }}
+                  >
+                    <span className="text-white text-xs font-bold writing-mode-vertical-rl transform rotate-180">
+                      Chờ
+                    </span>
+                  </div>
+                </div>
+                <p className="text-sm font-medium text-orange-600">{formatCurrency(stats?.pendingExpense || 0)}</p>
               </div>
             </div>
           </div>
@@ -371,7 +380,7 @@ const Fund_Management = () => {
             </span>
             <input
               type="text"
-              placeholder="Tìm kiếm theo mã GD, danh mục, mô tả..."
+              placeholder="Tìm kiếm theo mã, danh mục, phòng ban..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-[var(--color-admin-border-light)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-admin-primary)]"
@@ -380,35 +389,36 @@ const Fund_Management = () => {
         </div>
 
         <select
-          value={filterType}
-          onChange={(e) => setFilterType(e.target.value)}
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
           className="px-4 py-2 border border-[var(--color-admin-border-light)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-admin-primary)]"
         >
-          <option value="">Tất cả loại</option>
-          <option value="Thu">Thu</option>
-          <option value="Chi">Chi</option>
+          <option value="">Tất cả trạng thái</option>
+          <option value="Chờ duyệt">Chờ duyệt</option>
+          <option value="Đã chi">Đã chi</option>
+          <option value="Từ chối">Từ chối</option>
         </select>
 
         <div className="text-sm text-[var(--color-admin-text-light-secondary)]">
-          Tổng: <strong>{filteredFunds.length}</strong> giao dịch
+          Tổng: <strong>{filteredExpenses.length}</strong> chi phí
         </div>
       </div>
 
       <DataTable
         columns={columns}
-        data={filteredFunds}
+        data={filteredExpenses}
         itemsPerPage={10}
-        actions={(fund) => (
+        actions={(expense) => (
           <div className="flex gap-2">
             <button
-              onClick={() => handleEdit(fund)}
+              onClick={() => handleEdit(expense)}
               className="p-2 text-[var(--color-admin-primary)] hover:bg-[var(--color-admin-primary)]/10 rounded"
               title="Sửa"
             >
               <span className="material-symbols-outlined text-xl">edit</span>
             </button>
             <button
-              onClick={() => handleDelete(fund)}
+              onClick={() => handleDelete(expense)}
               className="p-2 text-[var(--color-admin-danger)] hover:bg-[var(--color-admin-danger)]/10 rounded"
               title="Xóa"
             >
@@ -424,7 +434,7 @@ const Fund_Management = () => {
             <div className="sticky top-0 bg-white border-b border-[var(--color-admin-border-light)] p-6">
               <div className="flex items-center justify-between">
                 <h3 className="text-xl font-bold text-[var(--color-admin-text-light-primary)]">
-                  {editingFund ? 'Cập nhật giao dịch' : 'Thêm giao dịch mới'}
+                  {editingExpense ? 'Cập nhật chi phí' : 'Thêm chi phí mới'}
                 </h3>
                 <button
                   onClick={() => setIsModalOpen(false)}
@@ -439,22 +449,22 @@ const Fund_Management = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-[var(--color-admin-text-light-primary)] mb-2">
-                    Mã giao dịch <span className="text-red-500">*</span>
+                    Mã chi phí <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
-                    value={formData.transactionId}
-                    onChange={(e) => setFormData({ ...formData, transactionId: e.target.value })}
-                    disabled={!!editingFund}
+                    value={formData.expense_code}
+                    onChange={(e) => setFormData({ ...formData, expense_code: e.target.value })}
+                    disabled={!!editingExpense}
                     required
-                    placeholder="TXN001"
+                    placeholder="EXP001"
                     className="w-full px-4 py-2 border border-[var(--color-admin-border-light)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-admin-primary)] disabled:bg-gray-100"
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-[var(--color-admin-text-light-primary)] mb-2">
-                    Ngày giao dịch <span className="text-red-500">*</span>
+                    Ngày <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="date"
@@ -469,38 +479,30 @@ const Fund_Management = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-[var(--color-admin-text-light-primary)] mb-2">
-                    Loại giao dịch <span className="text-red-500">*</span>
+                    Danh mục <span className="text-red-500">*</span>
                   </label>
-                  <select
-                    value={formData.type}
-                    onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                  <input
+                    type="text"
+                    value={formData.category}
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    required
+                    placeholder="Lương, Thiết bị, Vật tư..."
                     className="w-full px-4 py-2 border border-[var(--color-admin-border-light)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-admin-primary)]"
-                  >
-                    <option value="Thu">Thu</option>
-                    <option value="Chi">Chi</option>
-                  </select>
+                  />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-[var(--color-admin-text-light-primary)] mb-2">
-                    Danh mục <span className="text-red-500">*</span>
+                    Phòng ban <span className="text-red-500">*</span>
                   </label>
-                  <select
-                    value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  <input
+                    type="text"
+                    value={formData.department}
+                    onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                    required
+                    placeholder="Khoa Nội, Khoa Ngoại..."
                     className="w-full px-4 py-2 border border-[var(--color-admin-border-light)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-admin-primary)]"
-                  >
-                    <option value="Khám bệnh">Khám bệnh</option>
-                    <option value="Xét nghiệm">Xét nghiệm</option>
-                    <option value="Phẫu thuật">Phẫu thuật</option>
-                    <option value="Nội trú">Nội trú</option>
-                    <option value="Thuốc men">Thuốc men</option>
-                    <option value="Lương">Lương</option>
-                    <option value="Thiết bị">Thiết bị</option>
-                    <option value="Điện nước">Điện nước</option>
-                    <option value="Bảo trì">Bảo trì</option>
-                    <option value="Khác">Khác</option>
-                  </select>
+                  />
                 </div>
               </div>
 
@@ -521,19 +523,6 @@ const Fund_Management = () => {
 
               <div>
                 <label className="block text-sm font-medium text-[var(--color-admin-text-light-primary)] mb-2">
-                  Người tạo
-                </label>
-                <input
-                  type="text"
-                  value={formData.createdBy}
-                  onChange={(e) => setFormData({ ...formData, createdBy: e.target.value })}
-                  placeholder="Kế toán Nguyễn Văn A"
-                  className="w-full px-4 py-2 border border-[var(--color-admin-border-light)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-admin-primary)]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-[var(--color-admin-text-light-primary)] mb-2">
                   Mô tả
                 </label>
                 <textarea
@@ -541,8 +530,38 @@ const Fund_Management = () => {
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows="3"
                   className="w-full px-4 py-2 border border-[var(--color-admin-border-light)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-admin-primary)]"
-                  placeholder="Mô tả giao dịch..."
+                  placeholder="Mô tả chi phí..."
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-[var(--color-admin-text-light-primary)] mb-2">
+                    Người duyệt
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.approved_by}
+                    onChange={(e) => setFormData({ ...formData, approved_by: e.target.value })}
+                    placeholder="Giám đốc, Phó giám đốc..."
+                    className="w-full px-4 py-2 border border-[var(--color-admin-border-light)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-admin-primary)]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[var(--color-admin-text-light-primary)] mb-2">
+                    Trạng thái <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={formData.status}
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                    className="w-full px-4 py-2 border border-[var(--color-admin-border-light)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-admin-primary)]"
+                  >
+                    <option value="Chờ duyệt">Chờ duyệt</option>
+                    <option value="Đã chi">Đã chi</option>
+                    <option value="Từ chối">Từ chối</option>
+                  </select>
+                </div>
               </div>
 
               <div className="flex gap-3 pt-4">
@@ -557,7 +576,7 @@ const Fund_Management = () => {
                   type="submit"
                   className="flex-1 px-4 py-2 bg-[var(--color-admin-primary)] text-white rounded-lg hover:opacity-90"
                 >
-                  {editingFund ? 'Cập nhật' : 'Thêm mới'}
+                  {editingExpense ? 'Cập nhật' : 'Thêm mới'}
                 </button>
               </div>
             </form>
@@ -568,4 +587,4 @@ const Fund_Management = () => {
   );
 };
 
-export default Fund_Management;
+export default Expense_Report;

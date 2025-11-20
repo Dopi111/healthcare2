@@ -6,7 +6,7 @@ const Login = () => {
   const navigate = useNavigate();
 
   const goDoctorLogin = () => {
-    navigate('/Admin/Login'); // hoặc đường dẫn bạn muốn
+    navigate('/Admin/auth/Login'); // hoặc đường dẫn bạn muốn
   };
 
   const goPatientLogin = () => {

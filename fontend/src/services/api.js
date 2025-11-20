@@ -34,9 +34,25 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Unauthorized - clear token and redirect to login
-      localStorage.removeItem('authToken');
-      window.location.href = '/login';
+      // Unauthorized - only redirect if not already on a login page
+      const currentPath = window.location.pathname;
+      const isOnLoginPage = currentPath.includes('/Login') || currentPath.includes('/login');
+
+      if (!isOnLoginPage) {
+        // Clear auth tokens
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('token');
+        localStorage.removeItem('userToken');
+
+        // Redirect to appropriate login page based on current location
+        if (currentPath.includes('/Admin')) {
+          window.location.href = '/Admin/Login';
+        } else if (currentPath.includes('/User')) {
+          window.location.href = '/User/Login';
+        } else {
+          window.location.href = '/Admin/Login';
+        }
+      }
     }
     return Promise.reject(error);
   }

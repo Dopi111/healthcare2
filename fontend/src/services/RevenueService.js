@@ -16,12 +16,52 @@ class RevenueService {
     }
   }
 
+  static async getRevenueById(id) {
+    try {
+      const response = await api.get(`/revenue-new/${id}`);
+      return response.data.data;
+    } catch (error) {
+      console.error('Error getting revenue by ID:', error);
+      throw error;
+    }
+  }
+
   static async getRevenueByMonth(month) {
     try {
       const response = await api.get(`/revenue-new/month/${month}`);
       return response.data.data;
     } catch (error) {
       console.error('Error getting revenue by month:', error);
+      throw error;
+    }
+  }
+
+  static async addRevenue(revenueData) {
+    try {
+      const response = await api.post('/revenue-new', revenueData);
+      return response.data.data;
+    } catch (error) {
+      console.error('Error adding revenue:', error);
+      throw error;
+    }
+  }
+
+  static async updateRevenue(id, revenueData) {
+    try {
+      const response = await api.put(`/revenue-new/${id}`, revenueData);
+      return response.data.data;
+    } catch (error) {
+      console.error('Error updating revenue:', error);
+      throw error;
+    }
+  }
+
+  static async deleteRevenue(id) {
+    try {
+      const response = await api.delete(`/revenue-new/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error deleting revenue:', error);
       throw error;
     }
   }
