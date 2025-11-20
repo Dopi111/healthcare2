@@ -171,11 +171,11 @@ const Fund_Management = () => {
 
   // Prepare chart data
   const getCategoryChartData = () => {
-    if (!stats) return [];
-    return Object.entries(stats.categoryStats).map(([category, data]) => ({
+    if (!stats || !stats.categoryStats) return [];
+    return Object.entries(stats.categoryStats || {}).map(([category, data]) => ({
       category,
-      total: data.income + data.expense,
-      percentage: ((data.income + data.expense) / (stats.totalIncome + stats.totalExpense) * 100).toFixed(1)
+      total: (data?.income || 0) + (data?.expense || 0),
+      percentage: (((data?.income || 0) + (data?.expense || 0)) / ((stats.totalIncome || 0) + (stats.totalExpense || 0) || 1) * 100).toFixed(1)
     })).sort((a, b) => b.total - a.total);
   };
 
