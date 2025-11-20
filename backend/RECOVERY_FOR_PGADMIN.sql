@@ -133,7 +133,36 @@ CREATE TABLE user_medical_info (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Table 7: Lịch hẹn
+-- Table 7: Thông tin người thân
+CREATE TABLE user_relatives (
+    relative_id SERIAL PRIMARY KEY,
+    infor_users_id INT REFERENCES infor_users(infor_users_id) ON DELETE CASCADE,
+    full_name VARCHAR(100) NOT NULL,
+    relation VARCHAR(50) NOT NULL,
+    phone_number VARCHAR(15),
+    email VARCHAR(100),
+    address TEXT,
+    is_emergency_contact BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Table 8: Lịch sử khám bệnh
+CREATE TABLE user_medical_history (
+    history_id SERIAL PRIMARY KEY,
+    infor_users_id INT REFERENCES infor_users(infor_users_id) ON DELETE CASCADE,
+    visit_date DATE NOT NULL,
+    clinic_name VARCHAR(200),
+    doctor_name VARCHAR(100),
+    diagnosis TEXT,
+    treatment TEXT,
+    prescription TEXT,
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Table 9: Lịch hẹn
 CREATE TABLE appointments (
     appointment_id SERIAL PRIMARY KEY,
     infor_users_id INT REFERENCES infor_users(infor_users_id),
@@ -150,7 +179,7 @@ CREATE TABLE appointments (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Table 8: Kết quả xét nghiệm (user)
+-- Table 10: Kết quả xét nghiệm (user)
 CREATE TABLE lab_results (
     lab_result_id SERIAL PRIMARY KEY,
     infor_users_id INT REFERENCES infor_users(infor_users_id),
@@ -165,7 +194,7 @@ CREATE TABLE lab_results (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Table 9: Hồ sơ bệnh nhân ⭐
+-- Table 11: Hồ sơ bệnh nhân ⭐
 CREATE TABLE patients (
     patient_id SERIAL PRIMARY KEY,
     infor_users_id INT REFERENCES infor_users(infor_users_id),
@@ -184,7 +213,7 @@ CREATE TABLE patients (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Table 10: Chi phí ⭐
+-- Table 12: Chi phí ⭐
 CREATE TABLE expenses (
     expense_id SERIAL PRIMARY KEY,
     expense_code VARCHAR(50) UNIQUE NOT NULL,
@@ -199,7 +228,7 @@ CREATE TABLE expenses (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Table 11: Quỹ tài chính ⭐
+-- Table 13: Quỹ tài chính ⭐
 CREATE TABLE funds (
     fund_id SERIAL PRIMARY KEY,
     transaction_code VARCHAR(50) UNIQUE NOT NULL,
@@ -213,7 +242,7 @@ CREATE TABLE funds (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Table 12: Bảo hiểm ⭐
+-- Table 14: Bảo hiểm ⭐
 CREATE TABLE insurance_claims (
     insurance_id SERIAL PRIMARY KEY,
     claim_code VARCHAR(50) UNIQUE NOT NULL,
@@ -234,7 +263,7 @@ CREATE TABLE insurance_claims (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Table 13: Doanh thu ⭐
+-- Table 15: Doanh thu ⭐
 CREATE TABLE revenue (
     revenue_id SERIAL PRIMARY KEY,
     date DATE NOT NULL,
@@ -246,7 +275,7 @@ CREATE TABLE revenue (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Table 14: Xét nghiệm ⭐
+-- Table 16: Xét nghiệm ⭐
 CREATE TABLE laboratory_tests (
     lab_test_id SERIAL PRIMARY KEY,
     test_code VARCHAR(50) UNIQUE NOT NULL,
@@ -270,7 +299,7 @@ CREATE TABLE laboratory_tests (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Table 15: Kết quả test ⭐
+-- Table 17: Kết quả test ⭐
 CREATE TABLE test_results (
     test_result_id SERIAL PRIMARY KEY,
     test_code VARCHAR(50) NOT NULL,
@@ -293,7 +322,7 @@ CREATE TABLE test_results (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Table 16: Accounts
+-- Table 18: Accounts
 CREATE TABLE accounts (
     id SERIAL PRIMARY KEY,
     employee_id VARCHAR(50) UNIQUE NOT NULL,
