@@ -57,11 +57,11 @@ const DatLichHen = () => {
         user_id: userId || null,
         full_name: formData.fullName,
         phone_number: formData.phone,
-        email: formData.email,
-        specialty: formData.specialty,
-        doctor_name: formData.doctor || null,
         appointment_date: formData.date,
         appointment_time: formData.time,
+        doctor_name: formData.doctor || null,
+        department: formData.specialty || null,
+        reason: formData.specialty || null,
         notes: formData.notes
       };
 

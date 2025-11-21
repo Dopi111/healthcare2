@@ -9,17 +9,18 @@ export const createAppointment = async (req, res) => {
     user_id,
     full_name,
     phone_number,
-    email,
     specialty,
     doctor_name,
     appointment_date,
     appointment_time,
+    department,
+    reason,
     notes
   } = req.body;
 
   try {
     // Validation
-    if (!full_name || !phone_number || !specialty || !appointment_date || !appointment_time) {
+    if (!full_name || !phone_number || !appointment_date || !appointment_time) {
       return res.status(400).json({
         success: false,
         message: 'Vui lòng điền đầy đủ thông tin bắt buộc!'
@@ -53,20 +54,20 @@ export const createAppointment = async (req, res) => {
     // Create appointment
     const result = await pool.query(
       `INSERT INTO appointments
-       (user_id, patient_name, patient_phone, email, specialty, doctor_name,
-        appointment_date, appointment_time, notes, status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'pending')
+       (user_id, patient_name, patient_phone, appointment_date, appointment_time,
+        doctor_name, department, reason, notes, status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'scheduled')
        RETURNING *`,
       [
         user_id || null,
         full_name,
         phone_number,
-        email,
-        specialty,
-        doctor_name,
         appointment_date,
         appointment_time,
-        notes
+        doctor_name,
+        department,
+        reason || specialty,
+        notes,
       ]
     );
 

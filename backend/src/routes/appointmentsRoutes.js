@@ -33,7 +33,6 @@ const router = express.Router();
  *             required:
  *               - full_name
  *               - phone_number
- *               - specialty
  *               - appointment_date
  *               - appointment_time
  *             properties:
@@ -44,16 +43,16 @@ const router = express.Router();
  *                 type: string
  *               phone_number:
  *                 type: string
- *               email:
- *                 type: string
- *               specialty:
- *                 type: string
- *               doctor_name:
- *                 type: string
  *               appointment_date:
  *                 type: string
  *                 format: date
  *               appointment_time:
+ *                 type: string
+ *               doctor_name:
+ *                 type: string
+ *               department:
+ *                 type: string
+ *               reason:
  *                 type: string
  *               notes:
  *                 type: string
