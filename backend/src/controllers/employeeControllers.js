@@ -391,7 +391,7 @@ export const createEmployeeFull = async (req, res) => {
     // Hash password (default: employee_id if not provided)
     const hashedPassword = await bcrypt.hash(password || employee_id, 10);
 
-    // Insert new employee
+    // Insert new employee into infor_users
     const insertQuery = `
       INSERT INTO infor_users
         (employee_id, phone_number, card_id, password, full_name, email,
@@ -419,10 +419,50 @@ export const createEmployeeFull = async (req, res) => {
       current_address || null
     ]);
 
+    const newUser = result.rows[0];
+
+    // Get position_id and department_id from their names
+    let position_id = null;
+    let department_id = null;
+
+    if (position) {
+      const posResult = await db.query(
+        'SELECT position_id FROM list_position WHERE position_name = $1 LIMIT 1',
+        [position]
+      );
+      if (posResult.rows.length > 0) {
+        position_id = posResult.rows[0].position_id;
+      }
+    }
+
+    if (department) {
+      const deptResult = await db.query(
+        'SELECT department_id FROM list_department WHERE department_name = $1 LIMIT 1',
+        [department]
+      );
+      if (deptResult.rows.length > 0) {
+        department_id = deptResult.rows[0].department_id;
+      }
+    }
+
+    // Create corresponding record in infor_employee table
+    const insertEmployeeQuery = `
+      INSERT INTO infor_employee
+        (infor_users_id, position_id, department_id, status_employee)
+      VALUES ($1, $2, $3, 'active')
+      RETURNING infor_employee_id
+    `;
+
+    await db.query(insertEmployeeQuery, [
+      newUser.infor_users_id,
+      position_id,
+      department_id
+    ]);
+
     return res.status(201).json({
       success: true,
       message: "Thêm nhân viên thành công!",
-      data: result.rows[0]
+      data: newUser
     });
 
   } catch (err) {
