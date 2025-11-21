@@ -39,7 +39,7 @@ export const registerEmployee = async (req, res) => {
 
     // Kiểm tra trùng trong DB
     const checkExistQuery = `
-      SELECT * FROM infor_users
+      SELECT * FROM users
       WHERE (employee_id IS NOT NULL AND employee_id = $1)
         OR phone_number = $2
         OR card_id = $3
@@ -60,11 +60,11 @@ export const registerEmployee = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Xác định role dựa vào employee_id
-    const role_user = employee_id ? 'employee' : 'users';
+    const role = employee_id ? 'employee' : 'patient';
 
     // Thêm mới
     const insertAuthQuery = `
-      INSERT INTO infor_users (employee_id, password, phone_number, card_id, role_user)
+      INSERT INTO users (employee_id, password, phone_number, card_id, role)
       VALUES ($1, $2, $3, $4, $5)
       RETURNING *
     `;
@@ -73,7 +73,7 @@ export const registerEmployee = async (req, res) => {
       hashedPassword,
       phone,
       card_id,
-      role_user
+      role
     ]);
 
     return res.status(201).json({
@@ -87,16 +87,18 @@ export const registerEmployee = async (req, res) => {
   }
 };
 
-/*--------- 
+/*---------
  LOGIN EMPLOYEE
 ---------*/
 export const loginEmployee = async (req, res) => {
   const { employee_id, password } = req.body;
 
   try {
-    // Truy vấn tài khoản theo infor_auth_employee_id
+    // V2: Query from users table with role check
     const result = await db.query(
-      "SELECT * FROM infor_auth_employee WHERE infor_auth_employee_id = $1",
+      `SELECT * FROM users
+       WHERE employee_id = $1
+       AND role IN ('employee', 'administrator', 'doctor', 'nurse', 'receptionist', 'accountant', 'technician')`,
       [employee_id]
     );
 
@@ -107,14 +109,14 @@ export const loginEmployee = async (req, res) => {
     const user = result.rows[0];
 
     // So sánh password nhập vào với password đã hash trong DB
-    const isMatch = await bcrypt.compare(password, user.password_employee);
+    const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ success: false, message: "Sai mật khẩu" });
     }
 
     // Tạo JWT token
     const token = jwt.sign(
-      { infor_auth_employee_id: user.infor_auth_employee_id, employee_id: user.employee_id },
+      { user_id: user.user_id, employee_id: user.employee_id, role: user.role },
       process.env.JWT_SECRET || "SECRET_KEY",
       { expiresIn: "1h" }
     );
@@ -124,8 +126,10 @@ export const loginEmployee = async (req, res) => {
       message: "Đăng nhập thành công",
       token,
       user: {
-        infor_auth_employee_id: user.infor_auth_employee_id,
+        user_id: user.user_id,
         employee_id: user.employee_id,
+        full_name: user.full_name,
+        role: user.role,
         position: user.position
       }
     });
@@ -145,7 +149,7 @@ export const getEmployeeById = async (req, res) => {
   try {
     const q = `
       SELECT
-        e.infor_employee_id,
+        e.employee_id as infor_employee_id,
         u.employee_id,
         u.full_name,
         u.card_id,
@@ -156,16 +160,16 @@ export const getEmployeeById = async (req, res) => {
         u.current_address,
         p.position_name AS position,
         d.department_name AS department,
-        e.business,
-        e.started_date,
+        e.business_description as business,
+        e.start_date as started_date,
         e.salary,
         e.coefficient,
-        e.attached,
-        e.status_employee
-      FROM infor_employee e
-      JOIN infor_users u ON e.infor_users_id = u.infor_users_id
-      LEFT JOIN list_position p ON e.position_id = p.position_id
-      LEFT JOIN list_department d ON e.department_id = d.department_id
+        e.attached_documents as attached,
+        e.employment_status as status_employee
+      FROM employees e
+      JOIN users u ON e.user_id = u.user_id
+      LEFT JOIN positions p ON e.position_id = p.position_id
+      LEFT JOIN departments d ON e.department_id = d.department_id
       WHERE u.employee_id = $1
       LIMIT 1;
     `;
@@ -203,7 +207,7 @@ export const getUserById = async (req, res) => {
   try {
     const q = `
       SELECT
-        infor_users_id,
+        user_id,
         employee_id,
         phone_number,
         card_id,
@@ -212,10 +216,10 @@ export const getUserById = async (req, res) => {
         gender,
         permanent_address,
         current_address,
-        role_user
-      FROM infor_users
+        role
+      FROM users
       WHERE phone_number = $1
-        AND role_user = 'users'
+        AND role = 'patient'
       LIMIT 1;
     `;
 
@@ -259,7 +263,7 @@ export const updateEmployee = async (req, res) => {
 
     // Tạo câu query động
     const setQuery = fields.map((field, i) => `${field} = $${i + 1}`).join(', ');
-    const query = `UPDATE infor_users SET ${setQuery} WHERE employee_id = $${fields.length + 1} RETURNING *`;
+    const query = `UPDATE users SET ${setQuery} WHERE employee_id = $${fields.length + 1} RETURNING *`;
 
     const { rows } = await db.query(query, [...values, employee_id]);
 
@@ -280,7 +284,7 @@ export const getListEmployee = async (req, res) => {
   try {
     const q = `
       SELECT
-        infor_users_id,
+        user_id,
         full_name,
         employee_id,
         card_id,
@@ -293,10 +297,10 @@ export const getListEmployee = async (req, res) => {
         specialty,
         permanent_address,
         current_address,
-        role_user,
+        role,
         created_at
-      FROM infor_users
-      WHERE role_user = 'employee' OR role_user IS NULL OR role_user != 'users'
+      FROM users
+      WHERE role IN ('employee', 'administrator', 'doctor', 'nurse', 'receptionist', 'accountant', 'technician')
       ORDER BY full_name ASC
     `;
     const { rows, rowCount } = await db.query(q);
@@ -376,7 +380,7 @@ export const createEmployeeFull = async (req, res) => {
 
     // Check for duplicates
     const checkQuery = `
-      SELECT * FROM infor_users
+      SELECT * FROM users
       WHERE employee_id = $1 OR phone_number = $2 OR card_id = $3
     `;
     const checkResult = await db.query(checkQuery, [employee_id, phone_number, card_id]);
@@ -391,16 +395,16 @@ export const createEmployeeFull = async (req, res) => {
     // Hash password (default: employee_id if not provided)
     const hashedPassword = await bcrypt.hash(password || employee_id, 10);
 
-    // Insert new employee into infor_users
+    // Insert new employee into users
     const insertQuery = `
-      INSERT INTO infor_users
+      INSERT INTO users
         (employee_id, phone_number, card_id, password, full_name, email,
          date_of_birth, gender, position, department, specialty,
-         permanent_address, current_address, role_user)
+         permanent_address, current_address, role)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 'employee')
-      RETURNING infor_users_id, full_name, employee_id, phone_number, card_id,
+      RETURNING user_id, full_name, employee_id, phone_number, card_id,
                 email, date_of_birth, gender, position, department, specialty,
-                permanent_address, current_address, role_user, created_at
+                permanent_address, current_address, role, created_at
     `;
 
     const result = await db.query(insertQuery, [
@@ -427,7 +431,7 @@ export const createEmployeeFull = async (req, res) => {
 
     if (position) {
       const posResult = await db.query(
-        'SELECT position_id FROM list_position WHERE position_name = $1 LIMIT 1',
+        'SELECT position_id FROM positions WHERE position_name = $1 LIMIT 1',
         [position]
       );
       if (posResult.rows.length > 0) {
@@ -437,7 +441,7 @@ export const createEmployeeFull = async (req, res) => {
 
     if (department) {
       const deptResult = await db.query(
-        'SELECT department_id FROM list_department WHERE department_name = $1 LIMIT 1',
+        'SELECT department_id FROM departments WHERE department_name = $1 LIMIT 1',
         [department]
       );
       if (deptResult.rows.length > 0) {
@@ -445,16 +449,16 @@ export const createEmployeeFull = async (req, res) => {
       }
     }
 
-    // Create corresponding record in infor_employee table
+    // Create corresponding record in employees table
     const insertEmployeeQuery = `
-      INSERT INTO infor_employee
-        (infor_users_id, position_id, department_id, status_employee)
+      INSERT INTO employees
+        (user_id, position_id, department_id, employment_status)
       VALUES ($1, $2, $3, 'active')
-      RETURNING infor_employee_id
+      RETURNING employee_id
     `;
 
     await db.query(insertEmployeeQuery, [
-      newUser.infor_users_id,
+      newUser.user_id,
       position_id,
       department_id
     ]);
@@ -495,7 +499,7 @@ export const updateEmployeeFull = async (req, res) => {
 
   try {
     // Check if employee exists
-    const checkQuery = 'SELECT * FROM infor_users WHERE employee_id = $1';
+    const checkQuery = 'SELECT * FROM users WHERE employee_id = $1';
     const checkResult = await db.query(checkQuery, [employee_id]);
 
     if (checkResult.rowCount === 0) {
@@ -507,7 +511,7 @@ export const updateEmployeeFull = async (req, res) => {
 
     // Check for duplicates (excluding current employee)
     const duplicateQuery = `
-      SELECT * FROM infor_users
+      SELECT * FROM users
       WHERE employee_id != $1 AND (phone_number = $2 OR card_id = $3)
     `;
     const duplicateResult = await db.query(duplicateQuery, [employee_id, phone_number, card_id]);
@@ -521,7 +525,7 @@ export const updateEmployeeFull = async (req, res) => {
 
     // Update employee
     const updateQuery = `
-      UPDATE infor_users
+      UPDATE users
       SET full_name = $1,
           phone_number = $2,
           card_id = $3,
@@ -535,9 +539,9 @@ export const updateEmployeeFull = async (req, res) => {
           current_address = $11,
           updated_at = CURRENT_TIMESTAMP
       WHERE employee_id = $12
-      RETURNING infor_users_id, full_name, employee_id, phone_number, card_id,
+      RETURNING user_id, full_name, employee_id, phone_number, card_id,
                 email, date_of_birth, gender, position, department, specialty,
-                permanent_address, current_address, role_user, updated_at
+                permanent_address, current_address, role, updated_at
     `;
 
     const result = await db.query(updateQuery, [
@@ -578,8 +582,8 @@ export const deleteEmployee = async (req, res) => {
 
   try {
     const deleteQuery = `
-      DELETE FROM infor_users
-      WHERE employee_id = $1 AND role_user = 'employee'
+      DELETE FROM users
+      WHERE employee_id = $1 AND role IN ('employee', 'administrator', 'doctor', 'nurse', 'receptionist', 'accountant', 'technician')
       RETURNING full_name, employee_id
     `;
 
@@ -614,9 +618,9 @@ export const deleteUser = async (req, res) => {
 
   try {
     const deleteQuery = `
-      DELETE FROM infor_users
-      WHERE infor_users_id = $1 AND role_user = 'users'
-      RETURNING full_name, infor_users_id
+      DELETE FROM users
+      WHERE user_id = $1 AND role = 'patient'
+      RETURNING full_name, user_id
     `;
 
     const result = await db.query(deleteQuery, [user_id]);

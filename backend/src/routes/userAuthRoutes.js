@@ -81,7 +81,7 @@ router.post('/register', async (req, res) => {
 
     // Check if user already exists
     const userCheck = await pool.query(
-      'SELECT * FROM infor_users WHERE phone_number = $1 OR card_id = $2',
+      'SELECT * FROM users WHERE phone_number = $1 OR card_id = $2',
       [phone_number, card_id]
     );
 
@@ -97,11 +97,11 @@ router.post('/register', async (req, res) => {
 
     // Insert user
     const result = await pool.query(
-      `INSERT INTO infor_users
+      `INSERT INTO users
        (phone_number, card_id, password, full_name, date_of_birth, gender,
-        email, permanent_address, current_address, role_user)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'users')
-       RETURNING infor_users_id, phone_number, full_name, email`,
+        email, permanent_address, current_address, role)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'patient')
+       RETURNING user_id, phone_number, full_name, email`,
       [phone_number, card_id, hashedPassword, full_name, date_of_birth,
        gender, email, permanent_address, current_address]
     );
@@ -110,15 +110,15 @@ router.post('/register', async (req, res) => {
 
     // Create empty medical info record
     await pool.query(
-      'INSERT INTO user_medical_info (infor_users_id) VALUES ($1)',
-      [newUser.infor_users_id]
+      'INSERT INTO user_medical_infos (user_id) VALUES ($1)',
+      [newUser.user_id]
     );
 
     res.status(201).json({
       success: true,
       message: 'Đăng ký tài khoản thành công!',
       data: {
-        user_id: newUser.infor_users_id,
+        user_id: newUser.user_id,
         phone_number: newUser.phone_number,
         full_name: newUser.full_name,
         email: newUser.email
@@ -177,10 +177,10 @@ router.post('/login', async (req, res) => {
 
     // Find user
     const result = await pool.query(
-      `SELECT infor_users_id, phone_number, password, full_name,
-              email, date_of_birth, gender, role_user
-       FROM infor_users
-       WHERE phone_number = $1 AND role_user = 'users'`,
+      `SELECT user_id, phone_number, password, full_name,
+              email, date_of_birth, gender, role
+       FROM users
+       WHERE phone_number = $1 AND role = 'patient'`,
       [phone_number]
     );
 
@@ -210,13 +210,13 @@ router.post('/login', async (req, res) => {
       success: true,
       message: 'Đăng nhập thành công!',
       data: {
-        user_id: user.infor_users_id,
+        user_id: user.user_id,
         phone_number: user.phone_number,
         full_name: user.full_name,
         email: user.email,
         date_of_birth: user.date_of_birth,
         gender: user.gender,
-        role: user.role_user
+        role: user.role
       }
     });
   } catch (error) {
@@ -270,8 +270,8 @@ router.put('/change-password', async (req, res) => {
 
     // Get user
     const result = await pool.query(
-      'SELECT * FROM infor_users WHERE phone_number = $1 AND role_user = $2',
-      [phone_number, 'users']
+      'SELECT * FROM users WHERE phone_number = $1 AND role = $2',
+      [phone_number, 'patient']
     );
 
     if (result.rows.length === 0) {
@@ -297,8 +297,8 @@ router.put('/change-password', async (req, res) => {
 
     // Update password
     await pool.query(
-      'UPDATE infor_users SET password = $1, updated_at = CURRENT_TIMESTAMP WHERE infor_users_id = $2',
-      [hashedPassword, user.infor_users_id]
+      'UPDATE users SET password = $1, updated_at = CURRENT_TIMESTAMP WHERE user_id = $2',
+      [hashedPassword, user.user_id]
     );
 
     res.status(200).json({

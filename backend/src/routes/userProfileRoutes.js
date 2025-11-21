@@ -25,10 +25,10 @@ router.get('/:user_id', async (req, res) => {
   try {
     // Get basic user info
     const userResult = await pool.query(
-      `SELECT infor_users_id, phone_number, card_id, full_name, date_of_birth,
+      `SELECT user_id, phone_number, card_id, full_name, date_of_birth,
               gender, email, permanent_address, current_address, created_at
-       FROM infor_users
-       WHERE infor_users_id = $1 AND role_user = 'users'`,
+       FROM users
+       WHERE user_id = $1 AND role = 'patient'`,
       [user_id]
     );
 
@@ -43,19 +43,19 @@ router.get('/:user_id', async (req, res) => {
 
     // Get medical info
     const medicalResult = await pool.query(
-      `SELECT * FROM user_medical_info WHERE infor_users_id = $1`,
+      `SELECT * FROM user_medical_infos WHERE user_id = $1`,
       [user_id]
     );
 
     // Get relatives
     const relativesResult = await pool.query(
-      `SELECT * FROM user_relatives WHERE infor_users_id = $1 ORDER BY is_emergency_contact DESC, created_at`,
+      `SELECT * FROM user_relatives WHERE user_id = $1 ORDER BY is_emergency_contact DESC, created_at`,
       [user_id]
     );
 
     // Get medical history
     const historyResult = await pool.query(
-      `SELECT * FROM user_medical_history WHERE infor_users_id = $1 ORDER BY visit_date DESC LIMIT 20`,
+      `SELECT * FROM user_medical_histories WHERE user_id = $1 ORDER BY visit_date DESC LIMIT 20`,
       [user_id]
     );
 
@@ -112,7 +112,7 @@ router.put('/:user_id/basic', async (req, res) => {
 
   try {
     const result = await pool.query(
-      `UPDATE infor_users
+      `UPDATE users
        SET full_name = COALESCE($1, full_name),
            date_of_birth = COALESCE($2, date_of_birth),
            gender = COALESCE($3, gender),
@@ -120,7 +120,7 @@ router.put('/:user_id/basic', async (req, res) => {
            permanent_address = COALESCE($5, permanent_address),
            current_address = COALESCE($6, current_address),
            updated_at = CURRENT_TIMESTAMP
-       WHERE infor_users_id = $7 AND role_user = 'users'
+       WHERE user_id = $7 AND role = 'patient'
        RETURNING *`,
       [full_name, date_of_birth, gender, email, permanent_address, current_address, user_id]
     );
@@ -163,7 +163,7 @@ router.put('/:user_id/medical', async (req, res) => {
   try {
     // Check if medical info exists
     const checkResult = await pool.query(
-      'SELECT * FROM user_medical_info WHERE infor_users_id = $1',
+      'SELECT * FROM user_medical_infos WHERE user_id = $1',
       [user_id]
     );
 
@@ -171,8 +171,8 @@ router.put('/:user_id/medical', async (req, res) => {
     if (checkResult.rows.length === 0) {
       // Insert new record
       result = await pool.query(
-        `INSERT INTO user_medical_info
-         (infor_users_id, blood_type, height, weight, allergies, chronic_diseases, medications, notes)
+        `INSERT INTO user_medical_infos
+         (user_id, blood_type, height, weight, allergies, chronic_diseases, medications, notes)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
          RETURNING *`,
         [user_id, blood_type, height, weight, allergies, chronic_diseases, medications, notes]
@@ -180,7 +180,7 @@ router.put('/:user_id/medical', async (req, res) => {
     } else {
       // Update existing record
       result = await pool.query(
-        `UPDATE user_medical_info
+        `UPDATE user_medical_infos
          SET blood_type = COALESCE($1, blood_type),
              height = COALESCE($2, height),
              weight = COALESCE($3, weight),
@@ -189,7 +189,7 @@ router.put('/:user_id/medical', async (req, res) => {
              medications = COALESCE($6, medications),
              notes = COALESCE($7, notes),
              updated_at = CURRENT_TIMESTAMP
-         WHERE infor_users_id = $8
+         WHERE user_id = $8
          RETURNING *`,
         [blood_type, height, weight, allergies, chronic_diseases, medications, notes, user_id]
       );
@@ -230,7 +230,7 @@ router.post('/:user_id/relatives', async (req, res) => {
 
     const result = await pool.query(
       `INSERT INTO user_relatives
-       (infor_users_id, full_name, relation, phone_number, email, address, is_emergency_contact)
+       (user_id, full_name, relation, phone_number, email, address, is_emergency_contact)
        VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
       [user_id, full_name, relation, phone_number, email, address, is_emergency_contact || false]
@@ -271,7 +271,7 @@ router.put('/:user_id/relatives/:relative_id', async (req, res) => {
            address = COALESCE($5, address),
            is_emergency_contact = COALESCE($6, is_emergency_contact),
            updated_at = CURRENT_TIMESTAMP
-       WHERE relative_id = $7 AND infor_users_id = $8
+       WHERE relative_id = $7 AND user_id = $8
        RETURNING *`,
       [full_name, relation, phone_number, email, address, is_emergency_contact, relative_id, user_id]
     );
@@ -309,7 +309,7 @@ router.delete('/:user_id/relatives/:relative_id', async (req, res) => {
 
   try {
     const result = await pool.query(
-      'DELETE FROM user_relatives WHERE relative_id = $1 AND infor_users_id = $2 RETURNING *',
+      'DELETE FROM user_relatives WHERE relative_id = $1 AND user_id = $2 RETURNING *',
       [relative_id, user_id]
     );
 
@@ -346,15 +346,15 @@ router.get('/:user_id/medical-history', async (req, res) => {
 
   try {
     const result = await pool.query(
-      `SELECT * FROM user_medical_history
-       WHERE infor_users_id = $1
+      `SELECT * FROM user_medical_histories
+       WHERE user_id = $1
        ORDER BY visit_date DESC
        LIMIT $2 OFFSET $3`,
       [user_id, limit, offset]
     );
 
     const countResult = await pool.query(
-      'SELECT COUNT(*) FROM user_medical_history WHERE infor_users_id = $1',
+      'SELECT COUNT(*) FROM user_medical_histories WHERE user_id = $1',
       [user_id]
     );
 
