@@ -15,7 +15,13 @@ const router = express.Router();
  */
 router.get('/', async (req, res) => {
   try {
-    const result = await pool.query('SELECT id, employee_id, name, department, position, role, phone, email, status, created_at FROM accounts ORDER BY created_at DESC');
+    // V2: Use users table, filter for employee roles only
+    const result = await pool.query(`
+      SELECT user_id as id, employee_id, full_name as name, department, position, role, phone_number as phone, email, status, created_at
+      FROM users
+      WHERE role IN ('employee', 'administrator', 'doctor', 'nurse', 'receptionist', 'accountant', 'technician')
+      ORDER BY created_at DESC
+    `);
     res.json({
       success: true,
       count: result.rows.length,
@@ -46,8 +52,11 @@ router.get('/', async (req, res) => {
  */
 router.get('/:id', async (req, res) => {
   try {
+    // V2: Use users table with aliasing for backwards compatibility
     const result = await pool.query(
-      'SELECT id, employee_id, name, department, position, role, phone, email, status, created_at FROM accounts WHERE id = $1',
+      `SELECT user_id as id, employee_id, full_name as name, department, position, role, phone_number as phone, email, status, created_at
+       FROM users
+       WHERE user_id = $1`,
       [req.params.id]
     );
     if (result.rows.length === 0) {
@@ -84,11 +93,13 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { employeeId, password, name, department, position, role, phone, email, status } = req.body;
+    // V2: Insert into users table with proper column names, need card_id and date_of_birth
     const result = await pool.query(
-      `INSERT INTO accounts
-       (employee_id, password, name, department, position, role, phone, email, status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id, employee_id, name, department, position, role, phone, email, status, created_at`,
-      [employeeId, password, name, department, position, role, phone, email, status || 'active']
+      `INSERT INTO users
+       (employee_id, password, full_name, department, position, role, phone_number, email, status, card_id, date_of_birth)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+       RETURNING user_id as id, employee_id, full_name as name, department, position, role, phone_number as phone, email, status, created_at`,
+      [employeeId, password, name, department, position, role, phone, email, status || 'active', employeeId.padEnd(12, '0'), '1990-01-01']
     );
     res.status(201).json({ success: true, data: result.rows[0] });
   } catch (error) {
@@ -130,9 +141,16 @@ router.put('/:id', async (req, res) => {
     const values = [];
     let paramCount = 1;
 
+    // V2: Map field names from V1 to V2
+    const fieldMapping = {
+      'name': 'full_name',
+      'phone': 'phone_number'
+    };
+
     Object.keys(fields).forEach(key => {
       if (key !== 'id') {
-        updates.push(`${key} = $${paramCount}`);
+        const dbColumn = fieldMapping[key] || key;
+        updates.push(`${dbColumn} = $${paramCount}`);
         values.push(fields[key]);
         paramCount++;
       }
@@ -140,7 +158,8 @@ router.put('/:id', async (req, res) => {
 
     values.push(id);
     const result = await pool.query(
-      `UPDATE accounts SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING id, employee_id, name, department, position, role, phone, email, status, created_at`,
+      `UPDATE users SET ${updates.join(', ')} WHERE user_id = $${paramCount}
+       RETURNING user_id as id, employee_id, full_name as name, department, position, role, phone_number as phone, email, status, created_at`,
       values
     );
 
@@ -171,12 +190,13 @@ router.put('/:id', async (req, res) => {
  */
 router.delete('/:id', async (req, res) => {
   try {
-    const checkResult = await pool.query('SELECT employee_id FROM accounts WHERE id = $1', [req.params.id]);
-    if (checkResult.rows.length > 0 && checkResult.rows[0].employee_id === 'admin') {
+    // V2: Use users table
+    const checkResult = await pool.query('SELECT employee_id FROM users WHERE user_id = $1', [req.params.id]);
+    if (checkResult.rows.length > 0 && (checkResult.rows[0].employee_id === 'admin' || checkResult.rows[0].employee_id === '0000000001')) {
       return res.status(403).json({ success: false, message: 'Không thể xóa tài khoản admin' });
     }
 
-    const result = await pool.query('DELETE FROM accounts WHERE id = $1 RETURNING *', [req.params.id]);
+    const result = await pool.query('DELETE FROM users WHERE user_id = $1 RETURNING *', [req.params.id]);
     if (result.rows.length === 0) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy' });
     }
@@ -211,8 +231,12 @@ router.delete('/:id', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { employeeId, password } = req.body;
+    // V2: Use users table, filter for employee roles only
     const result = await pool.query(
-      'SELECT id, employee_id, name, department, position, role, phone, email, status, created_at FROM accounts WHERE employee_id = $1 AND password = $2',
+      `SELECT user_id as id, employee_id, full_name as name, department, position, role, phone_number as phone, email, status, created_at
+       FROM users
+       WHERE employee_id = $1 AND password = $2
+       AND role IN ('employee', 'administrator', 'doctor', 'nurse', 'receptionist', 'accountant', 'technician')`,
       [employeeId, password]
     );
 

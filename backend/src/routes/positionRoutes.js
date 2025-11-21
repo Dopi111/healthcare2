@@ -23,8 +23,9 @@ const router = express.Router();
  */
 router.get('/:id', async (req, res) => {
   try {
+    // V2: Use positions table
     const result = await pool.query(
-      'SELECT * FROM list_position WHERE position_id = $1',
+      'SELECT * FROM positions WHERE position_id = $1',
       [req.params.id]
     );
 
@@ -60,8 +61,9 @@ router.get('/:id', async (req, res) => {
  */
 router.get('/', async (req, res) => {
   try {
+    // V2: Use positions table, filter for active only
     const result = await pool.query(
-      'SELECT * FROM list_position ORDER BY position_name ASC'
+      'SELECT * FROM positions WHERE is_active = TRUE ORDER BY position_name ASC'
     );
 
     res.json({
