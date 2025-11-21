@@ -40,7 +40,7 @@ const Employees_Management = () => {
     try {
       const res = await axios.get(`${API_URL}/employee/list-employee`);
       const data = res.data?.data || res.data || [];
-      const employees = Array.isArray(data) ? data.filter(r => (r.role_user || r.role || '').toLowerCase() !== 'users') : [];
+      const employees = Array.isArray(data) ? data.filter(r => (r.role || '').toLowerCase() !== 'patient') : [];
       setItems(employees);
     } catch (err) {
       setError(err.response?.data?.error || err.message || 'Failed to load');

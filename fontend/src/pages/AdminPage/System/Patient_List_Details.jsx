@@ -23,7 +23,7 @@ const Patient_List_Details = () => {
   });
   const [formData, setFormData] = useState({
     patient_code: '',
-    infor_users_id: null,
+    user_id: null,
     doctor_in_charge: '',
     visit_date: new Date().toISOString().split('T')[0],
     diagnosis: '',
@@ -110,7 +110,7 @@ const Patient_List_Details = () => {
     setEditingPatient(null);
     setFormData({
       patient_code: generatePatientCode(),
-      infor_users_id: null,
+      user_id: null,
       doctor_in_charge: '',
       visit_date: new Date().toISOString().split('T')[0],
       diagnosis: '',
@@ -129,7 +129,7 @@ const Patient_List_Details = () => {
     setEditingPatient(patient);
     setFormData({
       patient_code: patient.patient_code || '',
-      infor_users_id: patient.infor_users_id || null,
+      user_id: patient.user_id || null,
       doctor_in_charge: patient.doctor_in_charge || '',
       visit_date: patient.visit_date || '',
       diagnosis: patient.diagnosis || '',

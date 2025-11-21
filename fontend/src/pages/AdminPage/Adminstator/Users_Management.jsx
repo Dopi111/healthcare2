@@ -21,7 +21,7 @@ const Users_Management = () => {
       const res = await axios.get(`${API_URL}/employee/list-employee`);
       const data = res.data?.data || res.data || [];
       // Filter only users (not employees)
-      const users = Array.isArray(data) ? data.filter(r => (r.role_user || r.role || '').toLowerCase() === 'users') : [];
+      const users = Array.isArray(data) ? data.filter(r => (r.role || '').toLowerCase() === 'patient') : [];
       setItems(users);
     } catch (err) {
       setError(err.response?.data?.error || err.message || 'Failed to load');
@@ -113,7 +113,7 @@ const Users_Management = () => {
                       Chi tiết
                     </button>
                     <button
-                      onClick={() => handleDelete(row.infor_users_id || row.id)}
+                      onClick={() => handleDelete(row.user_id || row.id)}
                       className="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600 transition-colors"
                     >
                       Xóa

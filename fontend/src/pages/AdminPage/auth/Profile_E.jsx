@@ -63,9 +63,9 @@ const Profile_E = ({ employeeData }) => {
           phongBan: departmentName || emp.department || '',
           luongCoBan: emp.salary ? emp.salary.toLocaleString('vi-VN') + ' VND' : '',
           tinhTrang:
-            emp.status_employee === 'active'
+            emp.employment_status === 'active'
               ? 'Đang hoạt động'
-              : emp.status_employee === 'on_leave'
+              : emp.employment_status === 'on_leave'
               ? 'Đang nghỉ phép'
               : 'Ngừng làm việc'
         });

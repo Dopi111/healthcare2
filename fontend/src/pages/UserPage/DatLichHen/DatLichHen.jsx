@@ -54,7 +54,7 @@ const DatLichHen = () => {
       const userId = localStorage.getItem('userId');
 
       const appointmentData = {
-        infor_users_id: userId || null,
+        user_id: userId || null,
         full_name: formData.fullName,
         phone_number: formData.phone,
         email: formData.email,

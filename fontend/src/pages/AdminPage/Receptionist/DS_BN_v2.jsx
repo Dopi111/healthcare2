@@ -168,7 +168,7 @@ const DS_BN_v2 = ({ setContext }) => {
             </thead>
             <tbody>
               {patients.map((patient, index) => (
-                <tr key={patient.infor_users_id} className="border-b hover:bg-gray-50">
+                <tr key={patient.user_id} className="border-b hover:bg-gray-50">
                   <td className="px-4 py-3 text-sm">{index + 1}</td>
                   <td className="px-4 py-3 text-sm font-medium">{patient.full_name}</td>
                   <td className="px-4 py-3 text-sm">{patient.phone_number}</td>
@@ -178,7 +178,7 @@ const DS_BN_v2 = ({ setContext }) => {
                   <td className="px-4 py-3 text-sm">{patient.permanent_address || 'Chưa có'}</td>
                   <td className="px-4 py-3 text-center">
                     <button
-                      onClick={() => handleDelete(patient.infor_users_id, patient.full_name)}
+                      onClick={() => handleDelete(patient.user_id, patient.full_name)}
                       className="text-red-600 hover:text-red-800 text-sm"
                     >
                       Xóa
