@@ -6,7 +6,7 @@ import pool from '../config/db.js';
  */
 export const createAppointment = async (req, res) => {
   const {
-    infor_users_id,
+    user_id,
     full_name,
     phone_number,
     email,
@@ -35,11 +35,11 @@ export const createAppointment = async (req, res) => {
       });
     }
 
-    // Check if user exists (if infor_users_id is provided)
-    if (infor_users_id) {
+    // Check if user exists (if user_id is provided)
+    if (user_id) {
       const userCheck = await pool.query(
-        'SELECT infor_users_id FROM infor_users WHERE infor_users_id = $1',
-        [infor_users_id]
+        'SELECT user_id FROM users WHERE user_id = $1',
+        [user_id]
       );
 
       if (userCheck.rows.length === 0) {
@@ -53,12 +53,12 @@ export const createAppointment = async (req, res) => {
     // Create appointment
     const result = await pool.query(
       `INSERT INTO appointments
-       (infor_users_id, full_name, phone_number, email, specialty, doctor_name,
+       (user_id, patient_name, patient_phone, email, specialty, doctor_name,
         appointment_date, appointment_time, notes, status)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'pending')
        RETURNING *`,
       [
-        infor_users_id || null,
+        user_id || null,
         full_name,
         phone_number,
         email,
@@ -157,7 +157,7 @@ export const getUserAppointments = async (req, res) => {
 
   try {
     // Build WHERE clause
-    let whereClause = 'WHERE infor_users_id = $1';
+    let whereClause = 'WHERE user_id = $1';
     const params = [user_id];
     let paramCount = 1;
 

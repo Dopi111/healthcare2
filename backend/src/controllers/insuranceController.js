@@ -7,7 +7,13 @@ import pool from '../config/db.js';
 
 export const getAllInsurance = async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM insurance_claims ORDER BY visit_date DESC, created_at DESC');
+    const result = await pool.query(`
+      SELECT ic.*, p.patient_code, u.full_name as patient_name
+      FROM insurance_claims ic
+      LEFT JOIN patients p ON ic.patient_id = p.patient_id
+      LEFT JOIN users u ON p.user_id = u.user_id
+      ORDER BY ic.visit_date DESC, ic.created_at DESC
+    `);
     res.status(200).json({ success: true, count: result.rows.length, data: result.rows });
   } catch (error) {
     console.error('Get all insurance error:', error);
@@ -18,7 +24,13 @@ export const getAllInsurance = async (req, res) => {
 export const getInsuranceById = async (req, res) => {
   try {
     const { id } = req.params;
-    const result = await pool.query('SELECT * FROM insurance_claims WHERE insurance_id = $1', [id]);
+    const result = await pool.query(`
+      SELECT ic.*, p.patient_code, u.full_name as patient_name
+      FROM insurance_claims ic
+      LEFT JOIN patients p ON ic.patient_id = p.patient_id
+      LEFT JOIN users u ON p.user_id = u.user_id
+      WHERE ic.claim_id = $1
+    `, [id]);
     if (result.rows.length === 0) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy hồ sơ bảo hiểm' });
     }
@@ -33,25 +45,25 @@ export const createInsurance = async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const { claim_code, patient_id, patient_code, patient_name, insurance_card, insurance_type,
-            visit_date, total_amount, insurance_covered, patient_pay, status, approved_by, approved_date, notes } = req.body;
+    const { claim_code, patient_id, insurance_card, insurance_type,
+            visit_date, total_amount, insurance_covered, patient_pay, status, approved_by, approval_date, notes } = req.body;
 
-    if (!claim_code || !patient_name || !visit_date || !total_amount) {
-      return res.status(400).json({ success: false, message: 'Vui lòng điền đầy đủ thông tin bắt buộc' });
+    if (!claim_code || !patient_id || !visit_date || !total_amount) {
+      return res.status(400).json({ success: false, message: 'Vui lòng điền đầy đủ thông tin bắt buộc (claim_code, patient_id, visit_date, total_amount)' });
     }
 
-    const checkCode = await client.query('SELECT insurance_id FROM insurance_claims WHERE claim_code = $1', [claim_code]);
+    const checkCode = await client.query('SELECT claim_id FROM insurance_claims WHERE claim_code = $1', [claim_code]);
     if (checkCode.rows.length > 0) {
       await client.query('ROLLBACK');
       return res.status(400).json({ success: false, message: 'Mã hồ sơ đã tồn tại' });
     }
 
-    const insertQuery = `INSERT INTO insurance_claims (claim_code, patient_id, patient_code, patient_name, insurance_card,
-                         insurance_type, visit_date, total_amount, insurance_covered, patient_pay, status, approved_by, approved_date, notes)
-                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *`;
-    const values = [claim_code, patient_id || null, patient_code || null, patient_name, insurance_card || null,
+    const insertQuery = `INSERT INTO insurance_claims (claim_code, patient_id, insurance_card,
+                         insurance_type, visit_date, total_amount, insurance_covered, patient_pay, status, approved_by, approval_date, notes)
+                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`;
+    const values = [claim_code, patient_id, insurance_card || null,
                     insurance_type || null, visit_date, total_amount, insurance_covered || 0, patient_pay || 0,
-                    status || 'Chờ duyệt', approved_by || null, approved_date || null, notes || null];
+                    status || 'pending', approved_by || null, approval_date || null, notes || null];
     const result = await client.query(insertQuery, values);
 
     await client.query('COMMIT');
@@ -70,17 +82,17 @@ export const updateInsurance = async (req, res) => {
   try {
     await client.query('BEGIN');
     const { id } = req.params;
-    const { claim_code, patient_id, patient_code, patient_name, insurance_card, insurance_type,
-            visit_date, total_amount, insurance_covered, patient_pay, status, approved_by, approved_date, notes } = req.body;
+    const { claim_code, patient_id, insurance_card, insurance_type,
+            visit_date, total_amount, insurance_covered, patient_pay, status, approved_by, approval_date, notes } = req.body;
 
-    const checkInsurance = await client.query('SELECT insurance_id FROM insurance_claims WHERE insurance_id = $1', [id]);
+    const checkInsurance = await client.query('SELECT claim_id FROM insurance_claims WHERE claim_id = $1', [id]);
     if (checkInsurance.rows.length === 0) {
       await client.query('ROLLBACK');
       return res.status(404).json({ success: false, message: 'Không tìm thấy hồ sơ bảo hiểm' });
     }
 
     if (claim_code) {
-      const checkCode = await client.query('SELECT insurance_id FROM insurance_claims WHERE claim_code = $1 AND insurance_id != $2', [claim_code, id]);
+      const checkCode = await client.query('SELECT claim_id FROM insurance_claims WHERE claim_code = $1 AND claim_id != $2', [claim_code, id]);
       if (checkCode.rows.length > 0) {
         await client.query('ROLLBACK');
         return res.status(400).json({ success: false, message: 'Mã hồ sơ đã tồn tại' });
@@ -88,15 +100,15 @@ export const updateInsurance = async (req, res) => {
     }
 
     const updateQuery = `UPDATE insurance_claims SET claim_code = COALESCE($1, claim_code), patient_id = COALESCE($2, patient_id),
-                         patient_code = COALESCE($3, patient_code), patient_name = COALESCE($4, patient_name),
-                         insurance_card = COALESCE($5, insurance_card), insurance_type = COALESCE($6, insurance_type),
-                         visit_date = COALESCE($7, visit_date), total_amount = COALESCE($8, total_amount),
-                         insurance_covered = COALESCE($9, insurance_covered), patient_pay = COALESCE($10, patient_pay),
-                         status = COALESCE($11, status), approved_by = COALESCE($12, approved_by),
-                         approved_date = COALESCE($13, approved_date), notes = COALESCE($14, notes)
-                         WHERE insurance_id = $15 RETURNING *`;
-    const values = [claim_code, patient_id, patient_code, patient_name, insurance_card, insurance_type, visit_date,
-                    total_amount, insurance_covered, patient_pay, status, approved_by, approved_date, notes, id];
+                         insurance_card = COALESCE($3, insurance_card), insurance_type = COALESCE($4, insurance_type),
+                         visit_date = COALESCE($5, visit_date), total_amount = COALESCE($6, total_amount),
+                         insurance_covered = COALESCE($7, insurance_covered), patient_pay = COALESCE($8, patient_pay),
+                         status = COALESCE($9, status), approved_by = COALESCE($10, approved_by),
+                         approval_date = COALESCE($11, approval_date), notes = COALESCE($12, notes),
+                         updated_at = CURRENT_TIMESTAMP
+                         WHERE claim_id = $13 RETURNING *`;
+    const values = [claim_code, patient_id, insurance_card, insurance_type, visit_date,
+                    total_amount, insurance_covered, patient_pay, status, approved_by, approval_date, notes, id];
     const result = await client.query(updateQuery, values);
 
     await client.query('COMMIT');
@@ -113,11 +125,11 @@ export const updateInsurance = async (req, res) => {
 export const deleteInsurance = async (req, res) => {
   try {
     const { id } = req.params;
-    const checkInsurance = await pool.query('SELECT insurance_id FROM insurance_claims WHERE insurance_id = $1', [id]);
+    const checkInsurance = await pool.query('SELECT claim_id FROM insurance_claims WHERE claim_id = $1', [id]);
     if (checkInsurance.rows.length === 0) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy hồ sơ bảo hiểm' });
     }
-    await pool.query('DELETE FROM insurance_claims WHERE insurance_id = $1', [id]);
+    await pool.query('DELETE FROM insurance_claims WHERE claim_id = $1', [id]);
     res.status(200).json({ success: true, message: 'Xóa hồ sơ bảo hiểm thành công' });
   } catch (error) {
     console.error('Delete insurance error:', error);

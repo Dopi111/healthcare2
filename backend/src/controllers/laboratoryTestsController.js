@@ -7,7 +7,13 @@ import pool from '../config/db.js';
 
 export const getAllLabTests = async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM laboratory_tests ORDER BY received_date DESC, created_at DESC');
+    const result = await pool.query(`
+      SELECT lt.*, p.patient_code, u.full_name as patient_name
+      FROM laboratory_tests lt
+      LEFT JOIN patients p ON lt.patient_id = p.patient_id
+      LEFT JOIN users u ON p.user_id = u.user_id
+      ORDER BY lt.received_date DESC, lt.created_at DESC
+    `);
     res.status(200).json({ success: true, count: result.rows.length, data: result.rows });
   } catch (error) {
     console.error('Get all lab tests error:', error);
@@ -18,7 +24,13 @@ export const getAllLabTests = async (req, res) => {
 export const getLabTestById = async (req, res) => {
   try {
     const { id } = req.params;
-    const result = await pool.query('SELECT * FROM laboratory_tests WHERE lab_test_id = $1', [id]);
+    const result = await pool.query(`
+      SELECT lt.*, p.patient_code, u.full_name as patient_name
+      FROM laboratory_tests lt
+      LEFT JOIN patients p ON lt.patient_id = p.patient_id
+      LEFT JOIN users u ON p.user_id = u.user_id
+      WHERE lt.lab_test_id = $1
+    `, [id]);
     if (result.rows.length === 0) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy xét nghiệm' });
     }
@@ -47,11 +59,11 @@ export const createLabTest = async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const { test_code, patient_id, patient_code, patient_name, test_type, sample_id, sample_type,
+    const { test_code, patient_id, test_type, sample_id, sample_type,
             received_date, received_time, technician, status, priority, results, notes } = req.body;
 
-    if (!test_code || !patient_name || !test_type || !received_date) {
-      return res.status(400).json({ success: false, message: 'Vui lòng điền đầy đủ thông tin bắt buộc' });
+    if (!test_code || !patient_id || !test_type || !received_date) {
+      return res.status(400).json({ success: false, message: 'Vui lòng điền đầy đủ thông tin bắt buộc (test_code, patient_id, test_type, received_date)' });
     }
 
     const checkCode = await client.query('SELECT lab_test_id FROM laboratory_tests WHERE test_code = $1', [test_code]);
@@ -68,11 +80,11 @@ export const createLabTest = async (req, res) => {
       }
     }
 
-    const insertQuery = `INSERT INTO laboratory_tests (test_code, patient_id, patient_code, patient_name, test_type, sample_id, sample_type,
+    const insertQuery = `INSERT INTO laboratory_tests (test_code, patient_id, test_type, sample_id, sample_type,
                          received_date, received_time, technician, status, priority, results, notes)
-                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *`;
-    const values = [test_code, patient_id || null, patient_code || null, patient_name, test_type, sample_id || null, sample_type || null,
-                    received_date, received_time || null, technician || null, status || 'Chờ xử lý', priority || 'Bình thường',
+                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`;
+    const values = [test_code, patient_id, test_type, sample_id || null, sample_type || null,
+                    received_date, received_time || null, technician || null, status || 'pending', priority || 'normal',
                     results ? JSON.stringify(results) : '{}', notes || null];
     const result = await client.query(insertQuery, values);
 
@@ -92,7 +104,7 @@ export const updateLabTest = async (req, res) => {
   try {
     await client.query('BEGIN');
     const { id } = req.params;
-    const { test_code, patient_id, patient_code, patient_name, test_type, sample_id, sample_type,
+    const { test_code, patient_id, test_type, sample_id, sample_type,
             received_date, received_time, technician, status, priority, results, completed_date, completed_time, verified_by, notes } = req.body;
 
     const checkLabTest = await client.query('SELECT lab_test_id FROM laboratory_tests WHERE lab_test_id = $1', [id]);
@@ -118,14 +130,14 @@ export const updateLabTest = async (req, res) => {
     }
 
     const updateQuery = `UPDATE laboratory_tests SET test_code = COALESCE($1, test_code), patient_id = COALESCE($2, patient_id),
-                         patient_code = COALESCE($3, patient_code), patient_name = COALESCE($4, patient_name),
-                         test_type = COALESCE($5, test_type), sample_id = COALESCE($6, sample_id), sample_type = COALESCE($7, sample_type),
-                         received_date = COALESCE($8, received_date), received_time = COALESCE($9, received_time),
-                         technician = COALESCE($10, technician), status = COALESCE($11, status), priority = COALESCE($12, priority),
-                         results = COALESCE($13, results), completed_date = COALESCE($14, completed_date),
-                         completed_time = COALESCE($15, completed_time), verified_by = COALESCE($16, verified_by), notes = COALESCE($17, notes)
-                         WHERE lab_test_id = $18 RETURNING *`;
-    const values = [test_code, patient_id, patient_code, patient_name, test_type, sample_id, sample_type, received_date, received_time,
+                         test_type = COALESCE($3, test_type), sample_id = COALESCE($4, sample_id), sample_type = COALESCE($5, sample_type),
+                         received_date = COALESCE($6, received_date), received_time = COALESCE($7, received_time),
+                         technician = COALESCE($8, technician), status = COALESCE($9, status), priority = COALESCE($10, priority),
+                         results = COALESCE($11, results), completed_date = COALESCE($12, completed_date),
+                         completed_time = COALESCE($13, completed_time), verified_by = COALESCE($14, verified_by), notes = COALESCE($15, notes),
+                         updated_at = CURRENT_TIMESTAMP
+                         WHERE lab_test_id = $16 RETURNING *`;
+    const values = [test_code, patient_id, test_type, sample_id, sample_type, received_date, received_time,
                     technician, status, priority, results ? JSON.stringify(results) : null, completed_date, completed_time, verified_by, notes, id];
     const result = await client.query(updateQuery, values);
 
@@ -175,8 +187,15 @@ export const searchLabTests = async (req, res) => {
     if (!query) {
       return res.status(400).json({ success: false, message: 'Vui lòng nhập từ khóa tìm kiếm' });
     }
-    const searchQuery = `SELECT * FROM laboratory_tests WHERE test_code ILIKE $1 OR patient_code ILIKE $1 OR
-                         patient_name ILIKE $1 OR test_type ILIKE $1 OR sample_id ILIKE $1 ORDER BY received_date DESC`;
+    const searchQuery = `
+      SELECT lt.*, p.patient_code, u.full_name as patient_name
+      FROM laboratory_tests lt
+      LEFT JOIN patients p ON lt.patient_id = p.patient_id
+      LEFT JOIN users u ON p.user_id = u.user_id
+      WHERE lt.test_code ILIKE $1 OR p.patient_code ILIKE $1 OR
+            u.full_name ILIKE $1 OR lt.test_type ILIKE $1 OR lt.sample_id ILIKE $1
+      ORDER BY lt.received_date DESC
+    `;
     const result = await pool.query(searchQuery, [`%${query}%`]);
     res.status(200).json({ success: true, count: result.rows.length, data: result.rows });
   } catch (error) {

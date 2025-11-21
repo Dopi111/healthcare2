@@ -37,7 +37,7 @@ const router = express.Router();
  *               - appointment_date
  *               - appointment_time
  *             properties:
- *               infor_users_id:
+ *               user_id:
  *                 type: integer
  *                 description: ID user (optional, null nếu là guest)
  *               full_name:

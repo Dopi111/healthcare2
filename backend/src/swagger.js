@@ -29,7 +29,7 @@ const options = {
       // User Management
       { name: 'User Auth', description: 'Đăng nhập/Đăng ký người dùng' },
       { name: 'User Profile', description: 'Hồ sơ người dùng' },
-      { name: 'Patients', description: 'Thông tin bệnh nhân (từ infor_users)' },
+      { name: 'Patients', description: 'Thông tin bệnh nhân (từ users)' },
 
       // Medical Management
       { name: 'Appointments', description: 'Quản lý lịch hẹn' },

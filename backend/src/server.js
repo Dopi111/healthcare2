@@ -47,7 +47,7 @@ app.use('/api/position', positionRoutes);
 app.use('/api/account', accountRoutes);
 
 // User routes
-app.use('/api/patients', patientsRoutes);  // User info only (from infor_users)
+app.use('/api/patients', patientsRoutes);  // User info only (from users)
 app.use('/api/user-auth', userAuthRoutes);
 app.use('/api/user-profile', userProfileRoutes);
 
@@ -67,55 +67,43 @@ app.use('/api/test-results-new', testResultsNewRoutes);
 const ensureDefaultAdmin = async () => {
   const adminPassword = process.env.ADMIN_PASSWORD || 'Admin@123';
   const full_name = 'Admin System';
-  const position = 'Admin';
   const phone_number = '0000000000'; // Tránh null
   const card_id = '000000000000'; // Card ID mặc định cho admin (12 số)
-  const role_user = 'employee'; // Admin là employee
+  const role = 'administrator'; // Admin role
   const employee_id_str = '0000000001'; // Employee ID mặc định cho admin (10 số)
 
   try {
     // Kiểm tra xem có admin nào chưa
-    const authCheck = await pool.query(
-      `SELECT 1 FROM infor_auth_employee WHERE position = 'Admin' LIMIT 1`
-    );
-
     const userCheck = await pool.query(
-      'SELECT 1 FROM infor_users WHERE phone_number = $1',
-      [phone_number]
+      'SELECT 1 FROM users WHERE employee_id = $1 OR (phone_number = $2 AND role = $3) LIMIT 1',
+      [employee_id_str, phone_number, role]
     );
 
-    if (authCheck.rowCount === 0 && userCheck.rowCount === 0) {
+    if (userCheck.rowCount === 0) {
       // Lấy department_id hợp lệ từ database (Phòng Hành chính)
       const deptResult = await pool.query(
-        `SELECT department_id FROM list_department WHERE department_name = 'Phòng Hành chính' LIMIT 1`
+        `SELECT department_id FROM departments WHERE department_name = 'Phòng Hành chính' LIMIT 1`
       );
 
       const department_id = deptResult.rows.length > 0 ? deptResult.rows[0].department_id : null;
 
-      // Tạo user
+      // Hash password
+      const hashed = await bcrypt.hash(adminPassword, 10);
+
+      // Tạo user với password
       const userResult = await pool.query(
-        `INSERT INTO infor_users (phone_number, full_name, card_id, role_user, employee_id)
-         VALUES ($1, $2, $3, $4, $5)
-         RETURNING infor_users_id`,
-        [phone_number, full_name, card_id, role_user, employee_id_str]
+        `INSERT INTO users (employee_id, phone_number, card_id, password, full_name, role)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING user_id`,
+        [employee_id_str, phone_number, card_id, hashed, full_name, role]
       );
-      const infor_users_id = userResult.rows[0].infor_users_id;
+      const user_id = userResult.rows[0].user_id;
 
       // Tạo nhân viên (employee) - department_id có thể là NULL nếu không tìm thấy
-      const employeeResult = await pool.query(
-        `INSERT INTO infor_employee (infor_users_id, position_id, department_id, status_employee)
-         VALUES ($1, NULL, $2, 'active')
-         RETURNING infor_employee_id`,
-        [infor_users_id, department_id]
-      );
-      const infor_employee_id = employeeResult.rows[0].infor_employee_id;
-
-      // Tạo auth
-      const hashed = await bcrypt.hash(adminPassword, 10);
       await pool.query(
-        `INSERT INTO infor_auth_employee (employee_id, password_employee, position)
-         VALUES ($1, $2, $3)`,
-        [employee_id_str, hashed, position]
+        `INSERT INTO employees (user_id, position_id, department_id, employment_status)
+         VALUES ($1, NULL, $2, 'active')`,
+        [user_id, department_id]
       );
 
       console.log(`✅ Default admin created successfully. Employee ID: ${employee_id_str}, Department: ${department_id || 'None'}`);
