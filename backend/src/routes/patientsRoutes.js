@@ -17,7 +17,7 @@ router.get('/', async (req, res) => {
   try {
     const query = `
       SELECT
-        infor_users_id,
+        user_id,
         phone_number,
         card_id,
         full_name,
@@ -25,10 +25,10 @@ router.get('/', async (req, res) => {
         gender,
         permanent_address,
         current_address,
-        role_user,
+        role,
         created_at
-      FROM infor_users
-      WHERE role_user = 'users'
+      FROM users
+      WHERE role = 'patient'
       ORDER BY created_at DESC
     `;
 
@@ -72,7 +72,7 @@ router.get('/:id', async (req, res) => {
 
     const query = `
       SELECT
-        infor_users_id,
+        user_id,
         phone_number,
         card_id,
         full_name,
@@ -80,9 +80,9 @@ router.get('/:id', async (req, res) => {
         gender,
         permanent_address,
         current_address,
-        role_user
-      FROM infor_users
-      WHERE infor_users_id = $1 AND role_user = 'users'
+        role
+      FROM users
+      WHERE user_id = $1 AND role = 'patient'
       LIMIT 1
     `;
 
@@ -173,7 +173,7 @@ router.post('/', async (req, res) => {
 
     // Kiểm tra trùng
     const checkQuery = `
-      SELECT infor_users_id FROM infor_users
+      SELECT user_id FROM users
       WHERE phone_number = $1 OR card_id = $2
       LIMIT 1
     `;
@@ -188,11 +188,11 @@ router.post('/', async (req, res) => {
 
     // Thêm mới
     const insertQuery = `
-      INSERT INTO infor_users
-        (phone_number, card_id, full_name, date_of_birth, gender, permanent_address, current_address, role_user)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, 'users')
+      INSERT INTO users
+        (phone_number, card_id, full_name, date_of_birth, gender, permanent_address, current_address, role)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, 'patient')
       RETURNING
-        infor_users_id,
+        user_id,
         phone_number,
         card_id,
         full_name,
@@ -200,7 +200,7 @@ router.post('/', async (req, res) => {
         gender,
         permanent_address,
         current_address,
-        role_user,
+        role,
         created_at
     `;
 
@@ -268,9 +268,9 @@ router.put('/:id', async (req, res) => {
 
     const setQuery = fields.map((field, i) => `${field} = $${i + 1}`).join(', ');
     const query = `
-      UPDATE infor_users
+      UPDATE users
       SET ${setQuery}, updated_at = CURRENT_TIMESTAMP
-      WHERE infor_users_id = $${fields.length + 1} AND role_user = 'users'
+      WHERE user_id = $${fields.length + 1} AND role = 'patient'
       RETURNING *
     `;
 
@@ -319,9 +319,9 @@ router.delete('/:id', async (req, res) => {
     const { id } = req.params;
 
     const query = `
-      DELETE FROM infor_users
-      WHERE infor_users_id = $1 AND role_user = 'users'
-      RETURNING infor_users_id
+      DELETE FROM users
+      WHERE user_id = $1 AND role = 'patient'
+      RETURNING user_id
     `;
 
     const { rows } = await pool.query(query, [id]);
@@ -369,7 +369,7 @@ router.get('/search/:keyword', async (req, res) => {
 
     const query = `
       SELECT
-        infor_users_id,
+        user_id,
         phone_number,
         card_id,
         full_name,
@@ -377,8 +377,8 @@ router.get('/search/:keyword', async (req, res) => {
         gender,
         permanent_address,
         current_address
-      FROM infor_users
-      WHERE role_user = 'users'
+      FROM users
+      WHERE role = 'patient'
         AND (
           full_name ILIKE $1
           OR phone_number ILIKE $1
