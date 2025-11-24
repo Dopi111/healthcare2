@@ -122,15 +122,15 @@ class LaboratoryService {
   }
 
   static async getPendingTests() {
-    return this.getTestsByStatus('Chờ xử lý');
+    return this.getTestsByStatus('pending');
   }
 
   static async getInProgressTests() {
-    return this.getTestsByStatus('Đang xét nghiệm');
+    return this.getTestsByStatus('in_progress');
   }
 
   static async getCompletedTests() {
-    return this.getTestsByStatus('Hoàn thành');
+    return this.getTestsByStatus('completed');
   }
 
   static async updateTestStatus(id, status, additionalData = {}) {
@@ -141,7 +141,7 @@ class LaboratoryService {
       };
 
       // If changing to completed, add timestamp
-      if (status === 'Hoàn thành' && !additionalData.completed_date) {
+      if (status === 'completed' && !additionalData.completed_date) {
         const now = new Date();
         updateData.completed_date = now.toISOString().split('T')[0];
         updateData.completed_time = now.toTimeString().slice(0, 5);

@@ -84,7 +84,7 @@ class FundService {
   static async getFundsByType(type) {
     try {
       const funds = await this.getAllFunds();
-      return funds.filter(f => f.type === type);
+      return funds.filter(f => f.transaction_type === type);
     } catch (error) {
       console.error('Error getting funds by type:', error);
       throw error;
@@ -105,7 +105,7 @@ class FundService {
     try {
       const funds = await this.getAllFunds();
       return funds.filter(f => {
-        const fundDate = new Date(f.date);
+        const fundDate = new Date(f.transaction_date);
         const start = new Date(startDate);
         const end = new Date(endDate);
         return fundDate >= start && fundDate <= end;
@@ -122,11 +122,11 @@ class FundService {
       const monthlyData = {};
 
       funds.forEach(f => {
-        const month = f.date.substring(0, 7); // YYYY-MM
+        const month = f.transaction_date.substring(0, 7); // YYYY-MM
         if (!monthlyData[month]) {
           monthlyData[month] = { income: 0, expense: 0 };
         }
-        if (f.type === 'Thu') {
+        if (f.transaction_type === 'income') {
           monthlyData[month].income += parseFloat(f.amount);
         } else {
           monthlyData[month].expense += parseFloat(f.amount);
