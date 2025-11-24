@@ -1,13 +1,13 @@
 /**
- * Revenue Controller
- * Handles all revenue operations (replacing RevenueService localStorage)
+ * Revenue Controller - UPDATED FOR SCHEMA V2
+ * Column changes: date → revenue_date, month → month_year (YYYY-MM format)
  */
 
 import pool from '../config/db.js';
 
 export const getAllRevenue = async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM revenue ORDER BY date DESC, created_at DESC');
+    const result = await pool.query('SELECT * FROM revenue ORDER BY revenue_date DESC, created_at DESC');
     res.status(200).json({ success: true, count: result.rows.length, data: result.rows });
   } catch (error) {
     console.error('Get all revenue error:', error);
@@ -15,10 +15,24 @@ export const getAllRevenue = async (req, res) => {
   }
 };
 
+export const getRevenueById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query('SELECT * FROM revenue WHERE revenue_id = $1', [id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy doanh thu' });
+    }
+    res.status(200).json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    console.error('Get revenue by ID error:', error);
+    res.status(500).json({ success: false, message: 'Lỗi server khi lấy thông tin doanh thu', error: error.message });
+  }
+};
+
 export const getRevenueByMonth = async (req, res) => {
   try {
     const { month } = req.params; // Format: YYYY-MM
-    const result = await pool.query('SELECT * FROM revenue WHERE month = $1 ORDER BY date DESC', [month]);
+    const result = await pool.query('SELECT * FROM revenue WHERE month_year = $1 ORDER BY revenue_date DESC', [month]);
     res.status(200).json({ success: true, count: result.rows.length, data: result.rows });
   } catch (error) {
     console.error('Get revenue by month error:', error);
@@ -30,15 +44,21 @@ export const createRevenue = async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const { date, category, patient_count, revenue_amount, month } = req.body;
+    const { revenue_date, category, patient_count, revenue_amount, month_year } = req.body;
 
-    if (!date || !category || !revenue_amount || !month) {
-      return res.status(400).json({ success: false, message: 'Vui lòng điền đầy đủ thông tin bắt buộc' });
+    if (!revenue_date || !category || !revenue_amount || !month_year) {
+      return res.status(400).json({ success: false, message: 'Vui lòng điền đầy đủ thông tin bắt buộc (revenue_date, category, revenue_amount, month_year)' });
     }
 
-    const insertQuery = `INSERT INTO revenue (date, category, patient_count, revenue_amount, month)
+    // Validate month_year format (YYYY-MM)
+    if (!/^\d{4}-\d{2}$/.test(month_year)) {
+      return res.status(400).json({ success: false, message: 'month_year phải có định dạng YYYY-MM (ví dụ: 2024-11)' });
+    }
+
+    const insertQuery = `INSERT INTO revenue (revenue_date, category, patient_count, revenue_amount, month_year)
                          VALUES ($1, $2, $3, $4, $5) RETURNING *`;
-    const result = await client.query(insertQuery, [date, category, patient_count || 0, revenue_amount, month]);
+    const values = [revenue_date, category, patient_count || 0, revenue_amount, month_year];
+    const result = await client.query(insertQuery, values);
 
     await client.query('COMMIT');
     res.status(201).json({ success: true, message: 'Thêm doanh thu thành công', data: result.rows[0] });
@@ -56,7 +76,7 @@ export const updateRevenue = async (req, res) => {
   try {
     await client.query('BEGIN');
     const { id } = req.params;
-    const { date, category, patient_count, revenue_amount, month } = req.body;
+    const { revenue_date, category, patient_count, revenue_amount, month_year } = req.body;
 
     const checkRevenue = await client.query('SELECT revenue_id FROM revenue WHERE revenue_id = $1', [id]);
     if (checkRevenue.rows.length === 0) {
@@ -64,10 +84,18 @@ export const updateRevenue = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Không tìm thấy doanh thu' });
     }
 
-    const updateQuery = `UPDATE revenue SET date = COALESCE($1, date), category = COALESCE($2, category),
-                         patient_count = COALESCE($3, patient_count), revenue_amount = COALESCE($4, revenue_amount),
-                         month = COALESCE($5, month) WHERE revenue_id = $6 RETURNING *`;
-    const result = await client.query(updateQuery, [date, category, patient_count, revenue_amount, month, id]);
+    // Validate month_year format if provided
+    if (month_year && !/^\d{4}-\d{2}$/.test(month_year)) {
+      return res.status(400).json({ success: false, message: 'month_year phải có định dạng YYYY-MM (ví dụ: 2024-11)' });
+    }
+
+    const updateQuery = `UPDATE revenue SET revenue_date = COALESCE($1, revenue_date),
+                         category = COALESCE($2, category), patient_count = COALESCE($3, patient_count),
+                         revenue_amount = COALESCE($4, revenue_amount), month_year = COALESCE($5, month_year),
+                         updated_at = CURRENT_TIMESTAMP
+                         WHERE revenue_id = $6 RETURNING *`;
+    const values = [revenue_date, category, patient_count, revenue_amount, month_year, id];
+    const result = await client.query(updateQuery, values);
 
     await client.query('COMMIT');
     res.status(200).json({ success: true, message: 'Cập nhật doanh thu thành công', data: result.rows[0] });
@@ -97,9 +125,10 @@ export const deleteRevenue = async (req, res) => {
 
 export const getRevenueStatistics = async (req, res) => {
   try {
-    const statsQuery = `SELECT COUNT(*) as total_records, SUM(patient_count) as total_patients,
-                        SUM(revenue_amount) as total_revenue,
-                        AVG(CASE WHEN patient_count > 0 THEN revenue_amount / patient_count END) as avg_revenue_per_patient
+    const statsQuery = `SELECT COUNT(*) as total_records,
+                        COALESCE(SUM(patient_count), 0) as total_patients,
+                        COALESCE(SUM(revenue_amount), 0) as total_revenue,
+                        COALESCE(AVG(CASE WHEN patient_count > 0 THEN revenue_amount / patient_count END), 0) as avg_revenue_per_patient
                         FROM revenue`;
     const result = await pool.query(statsQuery);
     res.status(200).json({ success: true, data: result.rows[0] || {} });
@@ -112,8 +141,8 @@ export const getRevenueStatistics = async (req, res) => {
 export const getMonthlyComparison = async (req, res) => {
   try {
     const { months = 6 } = req.query;
-    const query = `SELECT month, SUM(patient_count) as patients, SUM(revenue_amount) as revenue
-                   FROM revenue GROUP BY month ORDER BY month DESC LIMIT $1`;
+    const query = `SELECT month_year, SUM(patient_count) as patients, SUM(revenue_amount) as revenue
+                   FROM revenue GROUP BY month_year ORDER BY month_year DESC LIMIT $1`;
     const result = await pool.query(query, [parseInt(months)]);
     res.status(200).json({ success: true, count: result.rows.length, data: result.rows });
   } catch (error) {

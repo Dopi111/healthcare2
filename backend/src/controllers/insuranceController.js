@@ -139,10 +139,14 @@ export const deleteInsurance = async (req, res) => {
 
 export const getInsuranceStatistics = async (req, res) => {
   try {
-    const statsQuery = `SELECT COUNT(*) as total, COUNT(CASE WHEN status = 'Đã duyệt' THEN 1 END) as approved,
-                        COUNT(CASE WHEN status = 'Chờ duyệt' THEN 1 END) as pending,
-                        COUNT(CASE WHEN status = 'Từ chối' THEN 1 END) as rejected,
-                        SUM(total_amount) as total_amount, SUM(insurance_covered) as insurance_covered, SUM(patient_pay) as patient_pay
+    const statsQuery = `SELECT COUNT(*) as total,
+                        COUNT(CASE WHEN status = 'approved' THEN 1 END) as approved,
+                        COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending,
+                        COUNT(CASE WHEN status = 'rejected' THEN 1 END) as rejected,
+                        COUNT(CASE WHEN status = 'paid' THEN 1 END) as paid,
+                        COALESCE(SUM(total_amount), 0) as total_amount,
+                        COALESCE(SUM(insurance_covered), 0) as insurance_covered,
+                        COALESCE(SUM(patient_pay), 0) as patient_pay
                         FROM insurance_claims`;
     const result = await pool.query(statsQuery);
     res.status(200).json({ success: true, data: result.rows[0] || {} });

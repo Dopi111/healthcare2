@@ -1,13 +1,13 @@
 /**
- * Funds Controller
- * Handles all fund transaction operations (replacing FundService localStorage)
+ * Funds Controller - UPDATED FOR SCHEMA V2
+ * Column changes: date → transaction_date, type → transaction_type
  */
 
 import pool from '../config/db.js';
 
 export const getAllFunds = async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM funds ORDER BY date DESC, created_at DESC');
+    const result = await pool.query('SELECT * FROM funds ORDER BY transaction_date DESC, created_at DESC');
     res.status(200).json({ success: true, count: result.rows.length, data: result.rows });
   } catch (error) {
     console.error('Get all funds error:', error);
@@ -33,9 +33,9 @@ export const createFund = async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const { transaction_code, date, type, category, amount, description, created_by } = req.body;
+    const { transaction_code, transaction_date, transaction_type, category, amount, description, created_by } = req.body;
 
-    if (!transaction_code || !date || !type || !category || !amount) {
+    if (!transaction_code || !transaction_date || !transaction_type || !category || !amount) {
       return res.status(400).json({ success: false, message: 'Vui lòng điền đầy đủ thông tin bắt buộc' });
     }
 
@@ -45,9 +45,10 @@ export const createFund = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Mã giao dịch đã tồn tại' });
     }
 
-    const insertQuery = `INSERT INTO funds (transaction_code, date, type, category, amount, description, created_by)
+    const insertQuery = `INSERT INTO funds (transaction_code, transaction_date, transaction_type, category, amount, description, created_by)
                          VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`;
-    const result = await client.query(insertQuery, [transaction_code, date, type, category, amount, description || null, created_by || null]);
+    const values = [transaction_code, transaction_date, transaction_type, category, amount, description || null, created_by || null];
+    const result = await client.query(insertQuery, values);
 
     await client.query('COMMIT');
     res.status(201).json({ success: true, message: 'Thêm giao dịch thành công', data: result.rows[0] });
@@ -65,7 +66,7 @@ export const updateFund = async (req, res) => {
   try {
     await client.query('BEGIN');
     const { id } = req.params;
-    const { transaction_code, date, type, category, amount, description, created_by } = req.body;
+    const { transaction_code, transaction_date, transaction_type, category, amount, description, created_by } = req.body;
 
     const checkFund = await client.query('SELECT fund_id FROM funds WHERE fund_id = $1', [id]);
     if (checkFund.rows.length === 0) {
@@ -81,11 +82,14 @@ export const updateFund = async (req, res) => {
       }
     }
 
-    const updateQuery = `UPDATE funds SET transaction_code = COALESCE($1, transaction_code), date = COALESCE($2, date),
-                         type = COALESCE($3, type), category = COALESCE($4, category), amount = COALESCE($5, amount),
-                         description = COALESCE($6, description), created_by = COALESCE($7, created_by)
+    const updateQuery = `UPDATE funds SET transaction_code = COALESCE($1, transaction_code),
+                         transaction_date = COALESCE($2, transaction_date), transaction_type = COALESCE($3, transaction_type),
+                         category = COALESCE($4, category), amount = COALESCE($5, amount),
+                         description = COALESCE($6, description), created_by = COALESCE($7, created_by),
+                         updated_at = CURRENT_TIMESTAMP
                          WHERE fund_id = $8 RETURNING *`;
-    const result = await client.query(updateQuery, [transaction_code, date, type, category, amount, description, created_by, id]);
+    const values = [transaction_code, transaction_date, transaction_type, category, amount, description, created_by, id];
+    const result = await client.query(updateQuery, values);
 
     await client.query('COMMIT');
     res.status(200).json({ success: true, message: 'Cập nhật giao dịch thành công', data: result.rows[0] });
@@ -115,12 +119,11 @@ export const deleteFund = async (req, res) => {
 
 export const getFundStatistics = async (req, res) => {
   try {
-    const statsQuery = `SELECT 
-      COUNT(*) as transaction_count,
-      SUM(CASE WHEN type = 'Thu' THEN amount ELSE 0 END) as total_income,
-      SUM(CASE WHEN type = 'Chi' THEN amount ELSE 0 END) as total_expense,
-      SUM(CASE WHEN type = 'Thu' THEN amount ELSE -amount END) as balance
-      FROM funds`;
+    const statsQuery = `SELECT COUNT(*) as transaction_count,
+                        COALESCE(SUM(CASE WHEN transaction_type = 'income' THEN amount ELSE 0 END), 0) as total_income,
+                        COALESCE(SUM(CASE WHEN transaction_type = 'expense' THEN amount ELSE 0 END), 0) as total_expense,
+                        COALESCE(SUM(CASE WHEN transaction_type = 'income' THEN amount ELSE -amount END), 0) as balance
+                        FROM funds`;
     const result = await pool.query(statsQuery);
     res.status(200).json({ success: true, data: result.rows[0] || {} });
   } catch (error) {

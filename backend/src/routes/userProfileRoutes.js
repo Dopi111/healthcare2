@@ -158,7 +158,16 @@ router.put('/:user_id/basic', async (req, res) => {
  */
 router.put('/:user_id/medical', async (req, res) => {
   const { user_id } = req.params;
-  const { blood_type, height, weight, allergies, chronic_diseases, medications, notes } = req.body;
+  const {
+    blood_type,
+    allergies,
+    chronic_diseases,
+    emergency_contact_name,
+    emergency_contact_phone,
+    emergency_contact_relation,
+    insurance_number,
+    insurance_provider
+  } = req.body;
 
   try {
     // Check if medical info exists
@@ -172,26 +181,33 @@ router.put('/:user_id/medical', async (req, res) => {
       // Insert new record
       result = await pool.query(
         `INSERT INTO user_medical_infos
-         (user_id, blood_type, height, weight, allergies, chronic_diseases, medications, notes)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         (user_id, blood_type, allergies, chronic_diseases,
+          emergency_contact_name, emergency_contact_phone, emergency_contact_relation,
+          insurance_number, insurance_provider)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
          RETURNING *`,
-        [user_id, blood_type, height, weight, allergies, chronic_diseases, medications, notes]
+        [user_id, blood_type, allergies, chronic_diseases,
+         emergency_contact_name, emergency_contact_phone, emergency_contact_relation,
+         insurance_number, insurance_provider]
       );
     } else {
       // Update existing record
       result = await pool.query(
         `UPDATE user_medical_infos
          SET blood_type = COALESCE($1, blood_type),
-             height = COALESCE($2, height),
-             weight = COALESCE($3, weight),
-             allergies = COALESCE($4, allergies),
-             chronic_diseases = COALESCE($5, chronic_diseases),
-             medications = COALESCE($6, medications),
-             notes = COALESCE($7, notes),
+             allergies = COALESCE($2, allergies),
+             chronic_diseases = COALESCE($3, chronic_diseases),
+             emergency_contact_name = COALESCE($4, emergency_contact_name),
+             emergency_contact_phone = COALESCE($5, emergency_contact_phone),
+             emergency_contact_relation = COALESCE($6, emergency_contact_relation),
+             insurance_number = COALESCE($7, insurance_number),
+             insurance_provider = COALESCE($8, insurance_provider),
              updated_at = CURRENT_TIMESTAMP
-         WHERE user_id = $8
+         WHERE user_id = $9
          RETURNING *`,
-        [blood_type, height, weight, allergies, chronic_diseases, medications, notes, user_id]
+        [blood_type, allergies, chronic_diseases,
+         emergency_contact_name, emergency_contact_phone, emergency_contact_relation,
+         insurance_number, insurance_provider, user_id]
       );
     }
 

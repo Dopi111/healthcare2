@@ -44,7 +44,13 @@ export const getLabTestById = async (req, res) => {
 export const getLabTestByCode = async (req, res) => {
   try {
     const { code } = req.params;
-    const result = await pool.query('SELECT * FROM laboratory_tests WHERE test_code = $1', [code]);
+    const result = await pool.query(`
+      SELECT lt.*, p.patient_code, u.full_name as patient_name
+      FROM laboratory_tests lt
+      LEFT JOIN patients p ON lt.patient_id = p.patient_id
+      LEFT JOIN users u ON p.user_id = u.user_id
+      WHERE lt.test_code = $1
+    `, [code]);
     if (result.rows.length === 0) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy xét nghiệm' });
     }
@@ -169,10 +175,12 @@ export const deleteLabTest = async (req, res) => {
 
 export const getLabTestStatistics = async (req, res) => {
   try {
-    const statsQuery = `SELECT COUNT(*) as total, COUNT(CASE WHEN status = 'Chờ xử lý' THEN 1 END) as pending,
-                        COUNT(CASE WHEN status = 'Đang xét nghiệm' THEN 1 END) as in_progress,
-                        COUNT(CASE WHEN status = 'Hoàn thành' THEN 1 END) as completed,
-                        COUNT(CASE WHEN priority = 'Cấp tốc' THEN 1 END) as urgent FROM laboratory_tests`;
+    const statsQuery = `SELECT COUNT(*) as total,
+                        COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending,
+                        COUNT(CASE WHEN status = 'in_progress' THEN 1 END) as in_progress,
+                        COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed,
+                        COUNT(CASE WHEN status = 'verified' THEN 1 END) as verified,
+                        COUNT(CASE WHEN priority = 'urgent' THEN 1 END) as urgent FROM laboratory_tests`;
     const result = await pool.query(statsQuery);
     res.status(200).json({ success: true, data: result.rows[0] || {} });
   } catch (error) {
@@ -207,7 +215,14 @@ export const searchLabTests = async (req, res) => {
 export const getLabTestsByStatus = async (req, res) => {
   try {
     const { status } = req.params;
-    const result = await pool.query('SELECT * FROM laboratory_tests WHERE status = $1 ORDER BY received_date DESC', [status]);
+    const result = await pool.query(`
+      SELECT lt.*, p.patient_code, u.full_name as patient_name
+      FROM laboratory_tests lt
+      LEFT JOIN patients p ON lt.patient_id = p.patient_id
+      LEFT JOIN users u ON p.user_id = u.user_id
+      WHERE lt.status = $1
+      ORDER BY lt.received_date DESC
+    `, [status]);
     res.status(200).json({ success: true, count: result.rows.length, data: result.rows });
   } catch (error) {
     console.error('Get lab tests by status error:', error);

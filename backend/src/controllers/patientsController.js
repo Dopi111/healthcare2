@@ -21,7 +21,7 @@ export const getAllPatients = async (req, res) => {
         u.gender,
         u.current_address
       FROM patients p
-      LEFT JOIN infor_users u ON p.infor_users_id = u.infor_users_id
+      LEFT JOIN users u ON p.user_id = u.user_id
       ORDER BY p.created_at DESC
     `;
 
@@ -61,7 +61,7 @@ export const getPatientById = async (req, res) => {
         u.current_address,
         u.permanent_address
       FROM patients p
-      LEFT JOIN infor_users u ON p.infor_users_id = u.infor_users_id
+      LEFT JOIN users u ON p.user_id = u.user_id
       WHERE p.patient_id = $1
     `;
 
@@ -106,7 +106,7 @@ export const getPatientByCode = async (req, res) => {
         u.gender,
         u.current_address
       FROM patients p
-      LEFT JOIN infor_users u ON p.infor_users_id = u.infor_users_id
+      LEFT JOIN users u ON p.user_id = u.user_id
       WHERE p.patient_code = $1
     `;
 
@@ -145,7 +145,7 @@ export const createPatient = async (req, res) => {
 
     const {
       patient_code,
-      infor_users_id,
+      user_id,
       doctor_in_charge,
       visit_date,
       diagnosis,
@@ -180,7 +180,7 @@ export const createPatient = async (req, res) => {
     // Insert patient
     const insertQuery = `
       INSERT INTO patients (
-        patient_code, infor_users_id, doctor_in_charge, visit_date,
+        patient_code, user_id, doctor_in_charge, visit_date,
         diagnosis, status, medical_history, allergies, notes
       )
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
@@ -189,11 +189,11 @@ export const createPatient = async (req, res) => {
 
     const values = [
       patient_code,
-      infor_users_id || null,
+      user_id || null,
       doctor_in_charge || null,
       visit_date || null,
       diagnosis || null,
-      status || 'Đang điều trị',
+      status || 'active',
       medical_history || null,
       allergies || null,
       notes || null
@@ -383,7 +383,7 @@ export const searchPatients = async (req, res) => {
         u.phone_number,
         u.card_id
       FROM patients p
-      LEFT JOIN infor_users u ON p.infor_users_id = u.infor_users_id
+      LEFT JOIN users u ON p.user_id = u.user_id
       WHERE
         p.patient_code ILIKE $1 OR
         u.full_name ILIKE $1 OR
@@ -424,7 +424,7 @@ export const getPatientsByStatus = async (req, res) => {
         u.phone_number,
         u.card_id
       FROM patients p
-      LEFT JOIN infor_users u ON p.infor_users_id = u.infor_users_id
+      LEFT JOIN users u ON p.user_id = u.user_id
       WHERE p.status = $1
       ORDER BY p.created_at DESC
     `;
@@ -461,7 +461,7 @@ export const getPatientsByDoctor = async (req, res) => {
         u.phone_number,
         u.card_id
       FROM patients p
-      LEFT JOIN infor_users u ON p.infor_users_id = u.infor_users_id
+      LEFT JOIN users u ON p.user_id = u.user_id
       WHERE p.doctor_in_charge = $1
       ORDER BY p.created_at DESC
     `;
