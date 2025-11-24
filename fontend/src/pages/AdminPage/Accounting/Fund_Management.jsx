@@ -13,13 +13,13 @@ const Fund_Management = () => {
   const [stats, setStats] = useState(null);
   const [showCharts, setShowCharts] = useState(true);
   const [formData, setFormData] = useState({
-    transactionId: '',
-    date: new Date().toISOString().split('T')[0],
-    type: 'Thu',
+    transaction_code: '',
+    transaction_date: new Date().toISOString().split('T')[0],
+    transaction_type: 'income',
     category: 'Khám bệnh',
     amount: 0,
     description: '',
-    createdBy: ''
+    created_by: ''
   });
 
   useEffect(() => {
@@ -47,14 +47,14 @@ const Fund_Management = () => {
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(f =>
-        f.transactionId.toLowerCase().includes(query) ||
-        f.category.toLowerCase().includes(query) ||
-        f.description.toLowerCase().includes(query)
+        f.transaction_code?.toLowerCase().includes(query) ||
+        f.category?.toLowerCase().includes(query) ||
+        f.description?.toLowerCase().includes(query)
       );
     }
 
     if (filterType) {
-      filtered = filtered.filter(f => f.type === filterType);
+      filtered = filtered.filter(f => f.transaction_type === filterType);
     }
 
     setFilteredFunds(filtered);
@@ -68,13 +68,13 @@ const Fund_Management = () => {
   const handleAdd = () => {
     setEditingFund(null);
     setFormData({
-      transactionId: '',
-      date: new Date().toISOString().split('T')[0],
-      type: 'Thu',
+      transaction_code: '',
+      transaction_date: new Date().toISOString().split('T')[0],
+      transaction_type: 'income',
       category: 'Khám bệnh',
       amount: 0,
       description: '',
-      createdBy: ''
+      created_by: ''
     });
     setIsModalOpen(true);
   };
@@ -86,7 +86,7 @@ const Fund_Management = () => {
   };
 
   const handleDelete = async (fund) => {
-    if (!window.confirm(`Bạn có chắc muốn xóa giao dịch "${fund.transactionId}"?`)) {
+    if (!window.confirm(`Bạn có chắc muốn xóa giao dịch "${fund.transaction_code}"?`)) {
       return;
     }
     try {
@@ -101,7 +101,7 @@ const Fund_Management = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.transactionId || !formData.amount || formData.amount <= 0) {
+    if (!formData.transaction_code || !formData.amount || formData.amount <= 0) {
       showMessage('error', 'Vui lòng điền đầy đủ thông tin!');
       return;
     }
@@ -128,25 +128,29 @@ const Fund_Management = () => {
 
   const columns = [
     {
-      key: 'transactionId',
+      key: 'transaction_code',
       label: 'Mã GD',
       sortable: true,
       className: 'font-medium text-[var(--color-admin-text-light-primary)]'
     },
     {
-      key: 'date',
+      key: 'transaction_date',
       label: 'Ngày',
       sortable: true
     },
     {
-      key: 'type',
+      key: 'transaction_type',
       label: 'Loại',
       render: (value) => {
         const variants = {
-          'Thu': 'success',
-          'Chi': 'danger'
+          'income': 'success',
+          'expense': 'danger'
         };
-        return <Badge variant={variants[value]}>{value}</Badge>;
+        const labels = {
+          'income': 'Thu',
+          'expense': 'Chi'
+        };
+        return <Badge variant={variants[value]}>{labels[value]}</Badge>;
       }
     },
     {
@@ -158,8 +162,8 @@ const Fund_Management = () => {
       key: 'amount',
       label: 'Số tiền',
       render: (value, row) => (
-        <span className={row.type === 'Thu' ? 'text-green-600 font-bold' : 'text-red-600 font-bold'}>
-          {row.type === 'Thu' ? '+' : '-'}{formatCurrency(value)}
+        <span className={row.transaction_type === 'income' ? 'text-green-600 font-bold' : 'text-red-600 font-bold'}>
+          {row.transaction_type === 'income' ? '+' : '-'}{formatCurrency(value)}
         </span>
       )
     },
@@ -385,8 +389,8 @@ const Fund_Management = () => {
           className="px-4 py-2 border border-[var(--color-admin-border-light)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-admin-primary)]"
         >
           <option value="">Tất cả loại</option>
-          <option value="Thu">Thu</option>
-          <option value="Chi">Chi</option>
+          <option value="income">Thu</option>
+          <option value="expense">Chi</option>
         </select>
 
         <div className="text-sm text-[var(--color-admin-text-light-secondary)]">
@@ -443,8 +447,8 @@ const Fund_Management = () => {
                   </label>
                   <input
                     type="text"
-                    value={formData.transactionId}
-                    onChange={(e) => setFormData({ ...formData, transactionId: e.target.value })}
+                    value={formData.transaction_code}
+                    onChange={(e) => setFormData({ ...formData, transaction_code: e.target.value })}
                     disabled={!!editingFund}
                     required
                     placeholder="TXN001"
@@ -458,8 +462,8 @@ const Fund_Management = () => {
                   </label>
                   <input
                     type="date"
-                    value={formData.date}
-                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                    value={formData.transaction_date}
+                    onChange={(e) => setFormData({ ...formData, transaction_date: e.target.value })}
                     required
                     className="w-full px-4 py-2 border border-[var(--color-admin-border-light)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-admin-primary)]"
                   />
@@ -472,12 +476,12 @@ const Fund_Management = () => {
                     Loại giao dịch <span className="text-red-500">*</span>
                   </label>
                   <select
-                    value={formData.type}
-                    onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                    value={formData.transaction_type}
+                    onChange={(e) => setFormData({ ...formData, transaction_type: e.target.value })}
                     className="w-full px-4 py-2 border border-[var(--color-admin-border-light)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-admin-primary)]"
                   >
-                    <option value="Thu">Thu</option>
-                    <option value="Chi">Chi</option>
+                    <option value="income">Thu</option>
+                    <option value="expense">Chi</option>
                   </select>
                 </div>
 
@@ -525,8 +529,8 @@ const Fund_Management = () => {
                 </label>
                 <input
                   type="text"
-                  value={formData.createdBy}
-                  onChange={(e) => setFormData({ ...formData, createdBy: e.target.value })}
+                  value={formData.created_by}
+                  onChange={(e) => setFormData({ ...formData, created_by: e.target.value })}
                   placeholder="Kế toán Nguyễn Văn A"
                   className="w-full px-4 py-2 border border-[var(--color-admin-border-light)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-admin-primary)]"
                 />
