@@ -99,7 +99,7 @@ const Individual_Patient_Management = () => {
       return;
     }
     try {
-      await PatientService.deletePatient(patient.id);
+      await PatientService.deletePatient(patient.patient_id);
       await loadPatients();
       showMessage('success', 'Xóa bệnh nhân thành công!');
     } catch (error) {

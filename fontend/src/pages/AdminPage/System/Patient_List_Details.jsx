@@ -154,7 +154,7 @@ const Patient_List_Details = () => {
       return;
     }
     try {
-      await PatientService.deletePatient(patient.id);
+      await PatientService.deletePatient(patient.patient_id);
       await loadPatients();
       showMessage('success', 'Xóa hồ sơ bệnh nhân thành công!');
     } catch (error) {
